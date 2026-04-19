@@ -4,42 +4,42 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    macOS Menu Bar                        │
+│                    macOS Menu Bar                       │
 │  [waveform icon]  →  NSStatusItem  →  NSMenu            │
 └─────────────────────────────────────────────────────────┘
           │
           ▼
 ┌─────────────────────┐     ┌──────────────────────────┐
-│   HotkeyManager     │────▶│      AppDelegate          │
-│  (CGEventTap)       │     │  (orchestrates pipeline)  │
+│   HotkeyManager     │────▶│      AppDelegate         │
+│  (CGEventTap)       │     │  (orchestrates pipeline) │
 │  Right Option key   │     └──────────┬───────────────┘
 └─────────────────────┘                │
                            ┌───────────▼────────────┐
-                           │     AudioCapture        │
-                           │  AVAudioEngine          │
-                           │  Float32 / 16kHz / mono │
+                           │     AudioCapture       │
+                           │  AVAudioEngine         │
+                           │  Float32 / 16kHz / mono│
                            └───────────┬────────────┘
                                        │  [Float]
                            ┌───────────▼────────────┐
-                           │  TranscriptionEngine    │
-                           │  WhisperKit             │
-                           │  Apple Neural Engine    │
+                           │  TranscriptionEngine   │
+                           │  WhisperKit            │
+                           │  Apple Neural Engine   │
                            └───────────┬────────────┘
                                        │  String
                               ┌────────┴────────┐
                               │                 │
                     ┌─────────▼──────┐  ┌───────▼────────┐
-                    │  Mode 1:       │  │  Mode 2:        │
-                    │  Direct insert │  │  OllamaClient   │
-                    │                │  │  llama3.2 etc.  │
+                    │  Mode 1:       │  │  Mode 2:       │
+                    │  Direct insert │  │  OllamaClient  │
+                    │                │  │  llama3.2 etc. │
                     └─────────┬──────┘  └───────┬────────┘
                               │                 │  rewritten text
                               └────────┬────────┘
                                        │  String
                            ┌───────────▼────────────┐
-                           │     TextInserter        │
-                           │  Tier 1: AXUIElement    │
-                           │  Tier 2: Pasteboard+V   │
+                           │     TextInserter       │
+                           │  Tier 1: AXUIElement   │
+                           │  Tier 2: Pasteboard+V  │
                            └────────────────────────┘
 ```
 

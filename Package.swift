@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.10
 import PackageDescription
 
 let package = Package(
@@ -16,10 +16,7 @@ let package = Package(
             dependencies: [
                 .product(name: "WhisperKit", package: "WhisperKit"),
             ],
-            path: "Sources/LocalVoice",
-            swiftSettings: [
-                .unsafeFlags(["-enable-bare-slash-regex"]),
-            ]
+            path: "Sources/LocalVoice"
         ),
         .testTarget(
             name: "LocalVoiceTests",

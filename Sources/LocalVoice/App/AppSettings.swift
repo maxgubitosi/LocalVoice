@@ -22,7 +22,7 @@ final class AppSettings: ObservableObject {
     init() {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
         self.mode = AppMode(rawValue: rawMode) ?? .directTranscription
-        self.ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2"
+        self.ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? DeviceCapability.recommendedGemmaModel
         self.whisperModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "base"
         let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
         self.hotkeyKeyCode = saved > 0 ? UInt16(saved) : 63 // F5 default

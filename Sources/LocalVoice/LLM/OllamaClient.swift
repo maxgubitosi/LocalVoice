@@ -4,7 +4,7 @@ final class OllamaClient {
     private let baseURL = URL(string: "http://localhost:11434")!
     private let session: URLSession
 
-    var model: String = "llama3.2"
+    var model: String = DeviceCapability.recommendedGemmaModel
 
     init() {
         let config = URLSessionConfiguration.default
