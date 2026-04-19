@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {

@@ -1,8 +1,8 @@
 # LocalVoice
 
-A macOS menu bar app for local, private voice-to-text — similar to Wispr Flow but 100% local and open source.
+A macOS menu bar app for local, private voice-to-text. 100% local, no cloud, no subscription.
 
-**No cloud. No subscription. Your voice stays on your machine.**
+**Your voice never leaves your machine.**
 
 ## Features
 
@@ -19,7 +19,7 @@ A macOS menu bar app for local, private voice-to-text — similar to Wispr Flow 
 
 - macOS 14 (Sonoma) or later
 - Apple Silicon Mac recommended (M1/M2/M3/M4)
-- [Ollama](https://ollama.com) installed and running (for Mode 2)
+- [Ollama](https://ollama.com) installed and running (for Mode 2 only)
 
 ## Setup
 
@@ -41,8 +41,9 @@ swift build -c release
 # Install Ollama
 brew install ollama
 
-# Pull a model
-ollama pull llama3.2
+# Pull a model (choose based on your hardware)
+ollama pull gemma4:2b   # M1/M2 or <16 GB RAM
+ollama pull gemma4:4b   # M3/M4 or ≥16 GB RAM
 
 # Start the server
 ollama serve
@@ -58,19 +59,15 @@ On first launch, LocalVoice will request:
 | **Accessibility** | To insert text into other apps via AXUIElement |
 | **Input Monitoring** | To detect the global hotkey (Right Option key) |
 
-Go to **System Settings → Privacy & Security** to grant these.
+Go to **System Settings → Privacy & Security** to grant these. The app won't work without Accessibility and Input Monitoring.
 
 ## Default Hotkey
 
-**Right Option (⌥) key** — hold to record, release to transcribe.
+**Right Option (⌥) key** — hold to record, release to transcribe and insert.
 
-## Architecture
+## Whisper Models
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical design.
-
-## Models
-
-| Whisper Model | Speed | Accuracy | VRAM |
+| Model | Speed | Accuracy | VRAM |
 |---|---|---|---|
 | tiny | ~0.1s | Good | ~75 MB |
 | base | ~0.2s | Better | ~145 MB |
@@ -78,7 +75,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical design.
 | medium | ~1.5s | Excellent | ~1.5 GB |
 | large-v3 | ~3s | Best | ~3 GB |
 
-Default: `base` — best balance of speed and accuracy for real-time use.
+Default: `base` — best balance of speed and accuracy for real-time use. Switch models from the menu bar.
+
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical design.
 
 ## License
 

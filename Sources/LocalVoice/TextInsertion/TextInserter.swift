@@ -55,7 +55,8 @@ final class TextInserter {
             if setResult == .success {
                 // Move caret to end of inserted text
                 let newPos = range.location + text.count
-                if let newRange = AXValueCreate(.cfRange, &CFRange(location: newPos, length: 0)) {
+                var cfRange = CFRange(location: newPos, length: 0)
+                if let newRange = AXValueCreate(.cfRange, &cfRange) {
                     AXUIElementSetAttributeValue(
                         focusedElement, kAXSelectedTextRangeAttribute as CFString, newRange
                     )
@@ -92,7 +93,7 @@ final class TextInserter {
         guard AXUIElementCopyAttributeValue(
             element, kAXRoleAttribute as CFString, &roleRef
         ) == .success else { return false }
-        return (roleRef as? String) == kAXSecureTextFieldRole as String
+        return (roleRef as? String) == "AXSecureTextField"
     }
 
     // MARK: - Tier 2: Clipboard + Cmd+V

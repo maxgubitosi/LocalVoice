@@ -5,7 +5,7 @@ Guía para agentes de IA que trabajen en este codebase.
 ## Qué es esto
 
 App de menu bar para macOS que convierte voz a texto de forma completamente local.
-Sin cloud, sin suscripción. Similar a Wispr Flow pero open source.
+Sin cloud, sin suscripción. Todo el procesamiento corre localmente en el Mac.
 
 - **Hotkey:** mantener Right Option (⌥) para grabar, soltar para transcribir
 - **Modo 1:** audio → Whisper → texto insertado en la app activa

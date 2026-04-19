@@ -25,15 +25,15 @@ final class TranscriptionEngine {
         }
 
         let options = DecodingOptions(
-            language: nil, // auto-detect
             task: .transcribe,
+            language: nil, // auto-detect
             temperature: 0,
             usePrefillPrompt: true,
             skipSpecialTokens: true
         )
 
         let results = try await whisper.transcribe(audioArray: buffer, decodeOptions: options)
-        return results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        return results.map { $0.text }.joined(separator: " ").trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 
     // MARK: - Available models
