@@ -1,0 +1,128 @@
+import AppKit
+
+protocol MenuBarDelegate: AnyObject {
+    func modeChanged(to mode: AppMode)
+    func ollamaModelChanged(to model: String)
+    func whisperModelChanged(to model: String)
+    func quitApp()
+}
+
+final class MenuBarManager: NSObject {
+    private let statusItem: NSStatusItem
+    private let settings: AppSettings
+    private weak var delegate: MenuBarDelegate?
+
+    private var statusButton: NSStatusBarButton? { statusItem.button }
+
+    init(settings: AppSettings, delegate: MenuBarDelegate) {
+        self.settings = settings
+        self.delegate = delegate
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        super.init()
+        configureButton()
+        buildMenu()
+    }
+
+    private func configureButton() {
+        statusButton?.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "LocalVoice")
+        statusButton?.image?.isTemplate = true
+    }
+
+    func setRecording(_ recording: Bool) {
+        DispatchQueue.main.async {
+            let symbolName = recording ? "waveform.circle.fill" : "waveform.circle"
+            self.statusButton?.image = NSImage(
+                systemSymbolName: symbolName,
+                accessibilityDescription: recording ? "Recording…" : "LocalVoice"
+            )
+            self.statusButton?.image?.isTemplate = true
+        }
+    }
+
+    func showError(_ message: String) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "LocalVoice Error"
+            alert.informativeText = message
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
+    }
+
+    // MARK: - Menu
+
+    private func buildMenu() {
+        let menu = NSMenu()
+
+        // Mode
+        let modeItem = NSMenuItem(title: "Mode", action: nil, keyEquivalent: "")
+        let modeSubmenu = NSMenu()
+
+        for mode in AppMode.allCases {
+            let item = NSMenuItem(
+                title: mode.rawValue,
+                action: #selector(modeSelected(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = mode
+            item.state = (mode == settings.mode) ? .on : .off
+            modeSubmenu.addItem(item)
+        }
+        modeItem.submenu = modeSubmenu
+        menu.addItem(modeItem)
+
+        // Whisper model
+        let whisperItem = NSMenuItem(title: "Whisper Model", action: nil, keyEquivalent: "")
+        let whisperSubmenu = NSMenu()
+        for model in TranscriptionEngine.availableModels {
+            let item = NSMenuItem(
+                title: model,
+                action: #selector(whisperModelSelected(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = model
+            item.state = (model == settings.whisperModel) ? .on : .off
+            whisperSubmenu.addItem(item)
+        }
+        whisperItem.submenu = whisperSubmenu
+        menu.addItem(whisperItem)
+
+        menu.addItem(.separator())
+
+        // Hotkey hint
+        let hotkeyHint = NSMenuItem(title: "Hold Right ⌥ to record", action: nil, keyEquivalent: "")
+        hotkeyHint.isEnabled = false
+        menu.addItem(hotkeyHint)
+
+        menu.addItem(.separator())
+
+        // Quit
+        let quit = NSMenuItem(title: "Quit LocalVoice", action: #selector(quitSelected), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+
+        statusItem.menu = menu
+    }
+
+    @objc private func modeSelected(_ sender: NSMenuItem) {
+        guard let mode = sender.representedObject as? AppMode else { return }
+        delegate?.modeChanged(to: mode)
+        rebuildMenuCheckmarks()
+    }
+
+    @objc private func whisperModelSelected(_ sender: NSMenuItem) {
+        guard let model = sender.representedObject as? String else { return }
+        delegate?.whisperModelChanged(to: model)
+        rebuildMenuCheckmarks()
+    }
+
+    @objc private func quitSelected() {
+        delegate?.quitApp()
+    }
+
+    private func rebuildMenuCheckmarks() {
+        buildMenu()
+    }
+}
