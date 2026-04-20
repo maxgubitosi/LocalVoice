@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hotkeyManager.onHotkeyUp   = { [weak self] in self?.stopAndProcess() }
 
-        Task { await transcriptionEngine.loadModel() }
+        Task { await transcriptionEngine.loadModel(named: appSettings.whisperModel) }
     }
 
     private func requestPermissions() {

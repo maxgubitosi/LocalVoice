@@ -21,7 +21,8 @@ final class TranscriptionEngine {
     }
 
     private func modelAlreadyDownloaded(_ model: String, in dir: URL) -> Bool {
-        let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        let coreMLDir = dir.appendingPathComponent("models/argmaxinc/whisperkit-coreml")
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: coreMLDir.path)) ?? []
         return contents.contains { $0.localizedCaseInsensitiveContains(model) }
     }
 
