@@ -37,9 +37,10 @@ final class TextInserter {
             return
         }
         print("[TextInserter] AX failed, falling back to pasteboard")
+        let targetApp = capturedApp
         capturedElement = nil
         capturedApp = nil
-        pasteboardInsert(text: text)
+        pasteboardInsert(text: text, targetApp: targetApp)
     }
 
     // MARK: - Tier 1: Accessibility API
@@ -86,7 +87,15 @@ final class TextInserter {
                 focusedElement, kAXValueAttribute as CFString, newValue as CFTypeRef
             )
             if setResult == .success {
-                // Move caret to end of inserted text
+                // Verify the write actually took effect (Chromium/Electron reports false success)
+                var verifyRef: AnyObject?
+                guard AXUIElementCopyAttributeValue(
+                    focusedElement, kAXValueAttribute as CFString, &verifyRef
+                ) == .success, (verifyRef as? String) == newValue else {
+                    print("[TextInserter] AX write unverified (Electron false-success), using pasteboard")
+                    return false
+                }
+
                 let newPos = range.location + text.count
                 var cfRange = CFRange(location: newPos, length: 0)
                 if let newRange = AXValueCreate(.cfRange, &cfRange) {
@@ -98,11 +107,19 @@ final class TextInserter {
             }
         }
 
-        // Some fields don't expose kAXValueAttribute but support kAXSelectedTextAttribute insertion
+        // Fields that don't expose kAXValueAttribute may support kAXSelectedTextAttribute
         let insertResult = AXUIElementSetAttributeValue(
             focusedElement, kAXSelectedTextAttribute as CFString, text as CFTypeRef
         )
-        return insertResult == .success
+        if insertResult != .success { return false }
+
+        // Verify via value read-back; if unverifiable, fall through to pasteboard
+        var verifyRef: AnyObject?
+        if AXUIElementCopyAttributeValue(focusedElement, kAXValueAttribute as CFString, &verifyRef) == .success,
+           let verifiedValue = verifyRef as? String {
+            return verifiedValue.contains(text)
+        }
+        return false
     }
 
     private func focusedAXElement() -> AXUIElement? {
@@ -141,7 +158,7 @@ final class TextInserter {
 
     // MARK: - Tier 2: Clipboard + Cmd+V
 
-    private func pasteboardInsert(text: String) {
+    private func pasteboardInsert(text: String, targetApp: AXUIElement? = nil) {
         let pasteboard = NSPasteboard.general
         let previousContents = pasteboard.pasteboardItems?.compactMap { item -> (String, NSData)? in
             guard let type = item.types.first,
@@ -152,23 +169,34 @@ final class TextInserter {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        // Simulate Cmd+V
-        let source = CGEventSource(stateID: .hidSystemState)
-        let vKeyCode: CGKeyCode = 0x09
+        // Activate the target app so Cmd+V lands in the right place
+        var activationDelay = 0.0
+        if let targetApp {
+            var pid: pid_t = 0
+            if AXUIElementGetPid(targetApp, &pid) == .success,
+               let app = NSRunningApplication(processIdentifier: pid) {
+                app.activate(options: [])
+                activationDelay = 0.15
+            }
+        }
 
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true)
-        let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
-        keyDown?.flags = .maskCommand
-        keyUp?.flags   = .maskCommand
-        keyDown?.post(tap: .cghidEventTap)
-        keyUp?.post(tap: .cghidEventTap)
+        DispatchQueue.main.asyncAfter(deadline: .now() + activationDelay) {
+            let source = CGEventSource(stateID: .hidSystemState)
+            let vKeyCode: CGKeyCode = 0x09
+            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true)
+            let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
+            keyDown?.flags = .maskCommand
+            keyUp?.flags   = .maskCommand
+            keyDown?.post(tap: .cghidEventTap)
+            keyUp?.post(tap: .cghidEventTap)
 
-        // Restore original clipboard after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            if let previous = previousContents, !previous.isEmpty {
-                pasteboard.clearContents()
-                for (typeString, data) in previous {
-                    pasteboard.setData(data as Data, forType: NSPasteboard.PasteboardType(typeString))
+            // Restore original clipboard after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if let previous = previousContents, !previous.isEmpty {
+                    pasteboard.clearContents()
+                    for (typeString, data) in previous {
+                        pasteboard.setData(data as Data, forType: NSPasteboard.PasteboardType(typeString))
+                    }
                 }
             }
         }
