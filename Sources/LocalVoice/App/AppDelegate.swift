@@ -13,7 +13,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
 
     var appSettings = AppSettings()
-    private var processingTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         requestPermissions()
@@ -47,8 +46,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startRecording() {
-        processingTask?.cancel()
-        processingTask = nil
         DispatchQueue.main.async { self.recordingOverlay.show(state: .recording) }
         audioCapture.startRecording()
     }
@@ -63,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
-            processingTask = Task {
+            Task {
                 do {
                     print("[Pipeline] Audio buffer: \(buffer.count) samples")
                     let transcript = try await self.transcriptionEngine.transcribe(
@@ -88,16 +85,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     await MainActor.run {
                         self.textInserter.insert(text: finalText)
                         self.recordingOverlay.hide()
-                        self.processingTask = nil
                     }
-                } catch is CancellationError {
-                    await MainActor.run { self.recordingOverlay.hide() }
                 } catch {
                     print("[Pipeline] Error: \(error)")
-                    await MainActor.run {
-                        self.recordingOverlay.showError(error.localizedDescription)
-                        self.processingTask = nil
-                    }
+                    await MainActor.run { self.recordingOverlay.showError(error.localizedDescription) }
                 }
             }
         }

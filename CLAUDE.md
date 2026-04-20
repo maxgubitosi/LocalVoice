@@ -7,7 +7,8 @@ Guía para agentes de IA que trabajen en este codebase.
 App de menu bar para macOS que convierte voz a texto de forma completamente local.
 Sin cloud, sin suscripción. Todo el procesamiento corre localmente en el Mac.
 
-- **Hotkey:** mantener Right Command (⌘ derecho) para grabar, soltar para transcribir
+- **Hotkey modo hold:** mantener Right Command (⌘ derecho) → graba, soltar → transcribe
+- **Hotkey modo latch:** doble-tap Right Command → empieza a grabar, tap → para y transcribe
 - **Modo 1:** audio → Whisper → texto insertado en la app activa
 - **Modo 2:** audio → Whisper → Ollama (gemma4) → texto reescrito → insertado
 

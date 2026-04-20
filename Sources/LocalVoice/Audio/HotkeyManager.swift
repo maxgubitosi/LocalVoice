@@ -1,22 +1,39 @@
 import Carbon
 import AppKit
 
-/// Monitors a global hotkey using CGEventTap (requires Input Monitoring permission).
-/// Default: right Option key (kVK_RightOption). Hold to record, release to stop.
+/// Monitors Right Command via CGEventTap. Two recording modes:
+/// - Hold: press and hold to record, release to transcribe.
+/// - Latch: double-tap to start recording hands-free, tap again to stop and transcribe.
 final class HotkeyManager {
     var onHotkeyDown: (() -> Void)?
     var onHotkeyUp:   (() -> Void)?
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    private var isHeld = false
+    private var physicalKeyDown = false
 
-    // The key to monitor — right Command by default, easily changed via Settings
     var monitoredKeyCode: CGKeyCode = 0x36 // kVK_RightCommand
 
-    init() { setupEventTap() }
+    // MARK: - State machine
 
+    private enum State {
+        case idle
+        case held               // key physically held, recording
+        case waitingDoubleTap   // first quick tap released, waiting for second within window
+        case latched            // latch mode: recording until next tap
+    }
+
+    private var state: State = .idle
+    private var keyDownTime: Date = Date()
+    private var doubleTapTimer: Timer?
+
+    private let holdThreshold: TimeInterval = 0.25   // shorter = tap, longer = hold
+    private let doubleTapWindow: TimeInterval = 0.30  // max gap between the two taps
+
+    init() { setupEventTap() }
     deinit { teardown() }
+
+    // MARK: - Event tap
 
     private func setupEventTap() {
         let mask: CGEventMask =
@@ -52,33 +69,87 @@ final class HotkeyManager {
         // macOS deshabilita el tap si tarda demasiado — lo re-habilitamos aquí
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
-            // Si el tap se deshabilitó mientras el botón estaba presionado, resetear estado
-            if isHeld { isHeld = false; DispatchQueue.main.async { self.onHotkeyUp?() } }
+            if physicalKeyDown {
+                physicalKeyDown = false
+                DispatchQueue.main.async { self.handleKeyUp() }
+            }
             return nil
         }
 
-        // flagsChanged fires for modifier-only keys (Option, Command, etc.)
         if type == .flagsChanged {
             let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
             guard keyCode == monitoredKeyCode else {
                 return Unmanaged.passUnretained(event)
             }
-            let flags = event.flags
-            let isDown = flags.contains(.maskCommand) // Command key pressed
-            if isDown && !isHeld {
-                isHeld = true
-                onHotkeyDown?()
-                return nil // Consume the event so it doesn't reach other apps
-            } else if !isDown && isHeld {
-                isHeld = false
-                onHotkeyUp?()
+            let isDown = event.flags.contains(.maskCommand)
+            if isDown && !physicalKeyDown {
+                physicalKeyDown = true
+                DispatchQueue.main.async { self.handleKeyDown() }
+                return nil
+            } else if !isDown && physicalKeyDown {
+                physicalKeyDown = false
+                DispatchQueue.main.async { self.handleKeyUp() }
                 return nil
             }
         }
         return Unmanaged.passUnretained(event)
     }
 
+    // MARK: - State transitions (always called on main thread)
+
+    private func handleKeyDown() {
+        switch state {
+        case .idle:
+            state = .held
+            keyDownTime = Date()
+            onHotkeyDown?()  // start recording immediately
+
+        case .waitingDoubleTap:
+            // Second tap confirmed — enter latch mode
+            // Recording is already running from the first tap, no need to restart
+            doubleTapTimer?.invalidate()
+            doubleTapTimer = nil
+            state = .latched
+
+        case .latched:
+            // Tap while latched — stop and transcribe
+            state = .idle
+            onHotkeyUp?()
+
+        case .held:
+            break
+        }
+    }
+
+    private func handleKeyUp() {
+        switch state {
+        case .held:
+            let duration = Date().timeIntervalSince(keyDownTime)
+            if duration < holdThreshold {
+                // Quick tap — wait to see if a second tap follows
+                state = .waitingDoubleTap
+                doubleTapTimer = Timer.scheduledTimer(withTimeInterval: doubleTapWindow, repeats: false) { [weak self] _ in
+                    guard let self, self.state == .waitingDoubleTap else { return }
+                    // No second tap arrived — treat as a short hold: stop and transcribe
+                    self.state = .idle
+                    self.onHotkeyUp?()
+                }
+            } else {
+                // Long hold released — stop and transcribe
+                state = .idle
+                onHotkeyUp?()
+            }
+
+        case .latched:
+            break  // key-up ignored in latch mode
+
+        case .idle, .waitingDoubleTap:
+            break
+        }
+    }
+
     private func teardown() {
+        doubleTapTimer?.invalidate()
         if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: false) }
         if let source = runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
     }
