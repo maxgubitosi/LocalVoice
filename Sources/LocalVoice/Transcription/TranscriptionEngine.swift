@@ -4,29 +4,47 @@ import Foundation
 final class TranscriptionEngine {
     private var whisper: WhisperKit?
     private var currentModel: String = "base"
-    private let modelLoadLock = NSLock()
 
     func loadModel(named model: String = "base") async {
-        modelLoadLock.lock()
-        defer { modelLoadLock.unlock() }
-
         currentModel = model
         do {
-            whisper = try await WhisperKit(model: model)
-            print("[TranscriptionEngine] Loaded model: \(model)")
+            let modelDir = try modelDirectory()
+            if !modelAlreadyDownloaded(model, in: modelDir) {
+                print("[TranscriptionEngine] Downloading '\(model)' for the first time — this may take a minute...")
+            }
+            print("[TranscriptionEngine] Loading model '\(model)'...")
+            whisper = try await WhisperKit(model: model, downloadBase: modelDir)
+            print("[TranscriptionEngine] Ready.")
         } catch {
             print("[TranscriptionEngine] Failed to load model '\(model)': \(error)")
         }
     }
 
-    func transcribe(buffer: [Float]) async throws -> String {
+    private func modelAlreadyDownloaded(_ model: String, in dir: URL) -> Bool {
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        return contents.contains { $0.localizedCaseInsensitiveContains(model) }
+    }
+
+    private func modelDirectory() throws -> URL {
+        let base = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let dir = base.appendingPathComponent("LocalVoice/Models", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    func transcribe(buffer: [Float], language: String? = nil) async throws -> String {
         guard let whisper else {
             throw TranscriptionError.modelNotLoaded
         }
 
         let options = DecodingOptions(
             task: .transcribe,
-            language: nil, // auto-detect
+            language: language,
             temperature: 0,
             usePrefillPrompt: true,
             skipSpecialTokens: true

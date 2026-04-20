@@ -4,7 +4,7 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     convenience init(settings: AppSettings) {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 400, height: 320),
+            contentRect: CGRect(x: 0, y: 0, width: 400, height: 380),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -30,7 +30,7 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
 
-            Section("Whisper Model") {
+            Section("Transcription") {
                 Picker("Model", selection: $settings.whisperModel) {
                     ForEach(TranscriptionEngine.availableModels, id: \.self) { model in
                         Text(model).tag(model)
@@ -39,6 +39,13 @@ struct SettingsView: View {
                 Text("Larger models are more accurate but slower. 'base' recommended for real-time use.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                Picker("Language", selection: $settings.transcriptionLanguage) {
+                    ForEach(TranscriptionLanguage.allCases, id: \.self) { lang in
+                        Text(lang.rawValue).tag(lang)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
 
             Section("Ollama (LLM Rewrite Mode)") {
@@ -50,6 +57,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .frame(width: 400, height: 320)
+        .frame(width: 400, height: 380)
     }
 }

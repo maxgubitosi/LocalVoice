@@ -118,7 +118,7 @@ Modificar `AppSettings.init()` → campo `whisperModel`.
 Modificar `DeviceCapability.swift` → `recommendedGemmaModel` y la tabla de `shouldUseHeavierModel`.
 
 **Cambiar el hotkey:**
-`HotkeyManager.monitoredKeyCode` — el keycode actual es `0x3D` (Right Option).
+`HotkeyManager.monitoredKeyCode` — el keycode actual es `0x36` (Right Command).
 
 **Agregar un modo nuevo (ej. resumen):**
 1. Agregar case a `AppMode` en `AppSettings.swift`

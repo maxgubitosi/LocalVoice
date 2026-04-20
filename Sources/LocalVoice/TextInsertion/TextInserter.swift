@@ -5,11 +5,40 @@ import ApplicationServices
 ///   Tier 1 — AXUIElement (Accessibility API): precise, no clipboard pollution
 ///   Tier 2 — NSPasteboard + Cmd+V: universal fallback
 final class TextInserter {
+    private var capturedElement: AXUIElement?
+    private var capturedApp: AXUIElement?
+
+    // Call this on hotkeyDown, before recording starts, to lock in the target element
+    func captureTarget() {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedApp: AnyObject?
+        guard AXUIElementCopyAttributeValue(
+            systemWide, kAXFocusedApplicationAttribute as CFString, &focusedApp
+        ) == .success, let app = focusedApp else { return }
+
+        capturedApp = (app as! AXUIElement)
+
+        var focusedElement: AnyObject?
+        guard AXUIElementCopyAttributeValue(
+            app as! AXUIElement, kAXFocusedUIElementAttribute as CFString, &focusedElement
+        ) == .success else { return }
+
+        capturedElement = (focusedElement as! AXUIElement)
+    }
 
     func insert(text: String) {
         guard !text.isEmpty else { return }
 
-        if tryAccessibilityInsert(text: text) { return }
+        print("[TextInserter] AX trusted: \(AXIsProcessTrusted())")
+        if tryAccessibilityInsert(text: text) {
+            print("[TextInserter] Inserted via AX")
+            capturedElement = nil
+            capturedApp = nil
+            return
+        }
+        print("[TextInserter] AX failed, falling back to pasteboard")
+        capturedElement = nil
+        capturedApp = nil
         pasteboardInsert(text: text)
     }
 
@@ -18,9 +47,13 @@ final class TextInserter {
     private func tryAccessibilityInsert(text: String) -> Bool {
         guard AXIsProcessTrusted() else { return false }
 
-        guard let focusedElement = focusedAXElement() else { return false }
+        guard let focusedElement = capturedElement ?? focusedAXElement() else { return false }
         guard !isSecureTextField(focusedElement) else {
             print("[TextInserter] Skipping secure text field")
+            return false
+        }
+        guard isNativeTextField(focusedElement) else {
+            print("[TextInserter] Non-native field (Electron/web), using pasteboard")
             return false
         }
 
@@ -88,12 +121,22 @@ final class TextInserter {
         return (focusedElement as! AXUIElement)
     }
 
-    private func isSecureTextField(_ element: AXUIElement) -> Bool {
+    private func axRole(_ element: AXUIElement) -> String? {
         var roleRef: AnyObject?
         guard AXUIElementCopyAttributeValue(
             element, kAXRoleAttribute as CFString, &roleRef
-        ) == .success else { return false }
-        return (roleRef as? String) == "AXSecureTextField"
+        ) == .success else { return nil }
+        return roleRef as? String
+    }
+
+    private func isSecureTextField(_ element: AXUIElement) -> Bool {
+        axRole(element) == "AXSecureTextField"
+    }
+
+    private func isNativeTextField(_ element: AXUIElement) -> Bool {
+        guard let role = axRole(element) else { return false }
+        return role == "AXTextField" || role == "AXTextArea"
+            || role == "AXSearchField" || role == "AXComboBox"
     }
 
     // MARK: - Tier 2: Clipboard + Cmd+V

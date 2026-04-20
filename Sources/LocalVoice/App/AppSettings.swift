@@ -5,6 +5,20 @@ enum AppMode: String, Codable, CaseIterable {
     case llmRewrite = "LLM Rewrite"
 }
 
+enum TranscriptionLanguage: String, Codable, CaseIterable {
+    case auto = "Auto"
+    case english = "English"
+    case spanish = "Spanish"
+
+    var whisperCode: String? {
+        switch self {
+        case .auto:    return nil
+        case .english: return "en"
+        case .spanish: return "es"
+        }
+    }
+}
+
 final class AppSettings: ObservableObject {
     @Published var mode: AppMode {
         didSet { UserDefaults.standard.set(mode.rawValue, forKey: "mode") }
@@ -18,6 +32,9 @@ final class AppSettings: ObservableObject {
     @Published var hotkeyKeyCode: UInt16 {
         didSet { UserDefaults.standard.set(Int(hotkeyKeyCode), forKey: "hotkeyKeyCode") }
     }
+    @Published var transcriptionLanguage: TranscriptionLanguage {
+        didSet { UserDefaults.standard.set(transcriptionLanguage.rawValue, forKey: "transcriptionLanguage") }
+    }
 
     init() {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
@@ -25,6 +42,8 @@ final class AppSettings: ObservableObject {
         self.ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? DeviceCapability.recommendedGemmaModel
         self.whisperModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "base"
         let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
-        self.hotkeyKeyCode = saved > 0 ? UInt16(saved) : 63 // F5 default
+        self.hotkeyKeyCode = saved > 0 ? UInt16(saved) : 63
+        let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
+        self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .auto
     }
 }

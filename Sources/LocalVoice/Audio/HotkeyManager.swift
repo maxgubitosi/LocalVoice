@@ -11,8 +11,8 @@ final class HotkeyManager {
     private var runLoopSource: CFRunLoopSource?
     private var isHeld = false
 
-    // The key to monitor — right Option by default, easily changed via Settings
-    var monitoredKeyCode: CGKeyCode = 0x3D // kVK_RightOption
+    // The key to monitor — right Command by default, easily changed via Settings
+    var monitoredKeyCode: CGKeyCode = 0x36 // kVK_RightCommand
 
     init() { setupEventTap() }
 
@@ -49,6 +49,14 @@ final class HotkeyManager {
     }
 
     private func handleEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        // macOS deshabilita el tap si tarda demasiado — lo re-habilitamos aquí
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+            // Si el tap se deshabilitó mientras el botón estaba presionado, resetear estado
+            if isHeld { isHeld = false; DispatchQueue.main.async { self.onHotkeyUp?() } }
+            return nil
+        }
+
         // flagsChanged fires for modifier-only keys (Option, Command, etc.)
         if type == .flagsChanged {
             let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
@@ -56,7 +64,7 @@ final class HotkeyManager {
                 return Unmanaged.passUnretained(event)
             }
             let flags = event.flags
-            let isDown = flags.contains(.maskAlternate) // Option key pressed
+            let isDown = flags.contains(.maskCommand) // Command key pressed
             if isDown && !isHeld {
                 isHeld = true
                 onHotkeyDown?()

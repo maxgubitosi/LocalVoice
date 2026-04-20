@@ -4,6 +4,7 @@ protocol MenuBarDelegate: AnyObject {
     func modeChanged(to mode: AppMode)
     func ollamaModelChanged(to model: String)
     func whisperModelChanged(to model: String)
+    func languageChanged(to language: TranscriptionLanguage)
     func quitApp()
 }
 
@@ -72,6 +73,23 @@ final class MenuBarManager: NSObject {
         modeItem.submenu = modeSubmenu
         menu.addItem(modeItem)
 
+        // Language
+        let langItem = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
+        let langSubmenu = NSMenu()
+        for language in TranscriptionLanguage.allCases {
+            let item = NSMenuItem(
+                title: language.rawValue,
+                action: #selector(languageSelected(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = language
+            item.state = (language == settings.transcriptionLanguage) ? .on : .off
+            langSubmenu.addItem(item)
+        }
+        langItem.submenu = langSubmenu
+        menu.addItem(langItem)
+
         // Whisper model
         let whisperItem = NSMenuItem(title: "Whisper Model", action: nil, keyEquivalent: "")
         let whisperSubmenu = NSMenu()
@@ -92,7 +110,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(.separator())
 
         // Hotkey hint
-        let hotkeyHint = NSMenuItem(title: "Hold Right ⌥ to record", action: nil, keyEquivalent: "")
+        let hotkeyHint = NSMenuItem(title: "Hold Right ⌘ to record", action: nil, keyEquivalent: "")
         hotkeyHint.isEnabled = false
         menu.addItem(hotkeyHint)
 
@@ -115,6 +133,12 @@ final class MenuBarManager: NSObject {
     @objc private func whisperModelSelected(_ sender: NSMenuItem) {
         guard let model = sender.representedObject as? String else { return }
         delegate?.whisperModelChanged(to: model)
+        rebuildMenuCheckmarks()
+    }
+
+    @objc private func languageSelected(_ sender: NSMenuItem) {
+        guard let language = sender.representedObject as? TranscriptionLanguage else { return }
+        delegate?.languageChanged(to: language)
         rebuildMenuCheckmarks()
     }
 

@@ -25,7 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager = MenuBarManager(settings: appSettings, delegate: self)
         hotkeyManager = HotkeyManager()
 
-        hotkeyManager.onHotkeyDown = { [weak self] in self?.startRecording() }
+        hotkeyManager.onHotkeyDown = { [weak self] in
+            // captureTarget() hace IPC vía AX — no llamarla desde el tap callback directamente
+            // para no bloquear el run loop y que macOS no deshabilite el tap.
+            DispatchQueue.main.async { self?.textInserter.captureTarget() }
+            self?.startRecording()
+        }
         hotkeyManager.onHotkeyUp   = { [weak self] in self?.stopAndProcess() }
 
         Task { await transcriptionEngine.loadModel() }
@@ -54,8 +59,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             Task {
                 do {
-                    let transcript = try await self.transcriptionEngine.transcribe(buffer: buffer)
-                    guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    print("[Pipeline] Audio buffer: \(buffer.count) samples")
+                    let transcript = try await self.transcriptionEngine.transcribe(
+                        buffer: buffer,
+                        language: self.appSettings.transcriptionLanguage.whisperCode
+                    )
+                    print("[Pipeline] Transcript: '\(transcript)'")
+                    guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        print("[Pipeline] Empty transcript, skipping")
+                        return
+                    }
 
                     let finalText: String
                     if self.appSettings.mode == .llmRewrite {
@@ -64,8 +77,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         finalText = transcript
                     }
 
+                    print("[Pipeline] Inserting: '\(finalText)'")
                     await MainActor.run { self.textInserter.insert(text: finalText) }
                 } catch {
+                    print("[Pipeline] Error: \(error)")
                     await MainActor.run {
                         self.menuBarManager.showError(error.localizedDescription)
                     }
@@ -85,6 +100,9 @@ extension AppDelegate: MenuBarDelegate {
     func whisperModelChanged(to model: String) {
         appSettings.whisperModel = model
         Task { await transcriptionEngine.loadModel(named: model) }
+    }
+    func languageChanged(to language: TranscriptionLanguage) {
+        appSettings.transcriptionLanguage = language
     }
     func quitApp() {
         NSApplication.shared.terminate(nil)

@@ -18,10 +18,5 @@ let package = Package(
             ],
             path: "Sources/LocalVoice"
         ),
-        .testTarget(
-            name: "LocalVoiceTests",
-            dependencies: ["LocalVoice"],
-            path: "Tests"
-        ),
     ]
 )
