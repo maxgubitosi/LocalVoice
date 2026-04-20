@@ -48,6 +48,7 @@ final class TranscriptionEngine {
             language: language,
             temperature: 0,
             usePrefillPrompt: true,
+            detectLanguage: language == nil,
             skipSpecialTokens: true
         )
 

@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
 
     var appSettings = AppSettings()
+    private var processingTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         requestPermissions()
@@ -46,18 +47,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startRecording() {
-        DispatchQueue.main.async { self.recordingOverlay.show() }
+        processingTask?.cancel()
+        processingTask = nil
+        DispatchQueue.main.async { self.recordingOverlay.show(state: .recording) }
         audioCapture.startRecording()
     }
 
     private func stopAndProcess() {
         audioCapture.stopRecording { [weak self] audioBuffer in
             guard let self else { return }
-            DispatchQueue.main.async { self.recordingOverlay.hide() }
+            DispatchQueue.main.async { self.recordingOverlay.showProcessing() }
 
-            guard let buffer = audioBuffer else { return }
+            guard let buffer = audioBuffer else {
+                DispatchQueue.main.async { self.recordingOverlay.hide() }
+                return
+            }
 
-            Task {
+            processingTask = Task {
                 do {
                     print("[Pipeline] Audio buffer: \(buffer.count) samples")
                     let transcript = try await self.transcriptionEngine.transcribe(
@@ -67,6 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     print("[Pipeline] Transcript: '\(transcript)'")
                     guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                         print("[Pipeline] Empty transcript, skipping")
+                        await MainActor.run { self.recordingOverlay.hide() }
                         return
                     }
 
@@ -78,11 +85,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
 
                     print("[Pipeline] Inserting: '\(finalText)'")
-                    await MainActor.run { self.textInserter.insert(text: finalText) }
+                    await MainActor.run {
+                        self.textInserter.insert(text: finalText)
+                        self.recordingOverlay.hide()
+                        self.processingTask = nil
+                    }
+                } catch is CancellationError {
+                    await MainActor.run { self.recordingOverlay.hide() }
                 } catch {
                     print("[Pipeline] Error: \(error)")
                     await MainActor.run {
-                        self.menuBarManager.showError(error.localizedDescription)
+                        self.recordingOverlay.showError(error.localizedDescription)
+                        self.processingTask = nil
                     }
                 }
             }

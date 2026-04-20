@@ -40,16 +40,6 @@ final class MenuBarManager: NSObject {
         }
     }
 
-    func showError(_ message: String) {
-        DispatchQueue.main.async {
-            let alert = NSAlert()
-            alert.messageText = "LocalVoice Error"
-            alert.informativeText = message
-            alert.alertStyle = .warning
-            alert.runModal()
-        }
-    }
-
     // MARK: - Menu
 
     private func buildMenu() {

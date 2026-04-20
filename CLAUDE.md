@@ -7,7 +7,7 @@ Guía para agentes de IA que trabajen en este codebase.
 App de menu bar para macOS que convierte voz a texto de forma completamente local.
 Sin cloud, sin suscripción. Todo el procesamiento corre localmente en el Mac.
 
-- **Hotkey:** mantener Right Option (⌥) para grabar, soltar para transcribir
+- **Hotkey:** mantener Right Command (⌘ derecho) para grabar, soltar para transcribir
 - **Modo 1:** audio → Whisper → texto insertado en la app activa
 - **Modo 2:** audio → Whisper → Ollama (gemma4) → texto reescrito → insertado
 
@@ -124,6 +124,23 @@ Modificar `DeviceCapability.swift` → `recommendedGemmaModel` y la tabla de `sh
 1. Agregar case a `AppMode` en `AppSettings.swift`
 2. Agregar case en `AppDelegate.stopAndProcess()`
 3. Agregar item al menú en `MenuBarManager.buildMenu()`
+
+## Roadmap
+
+### Fase 1 — Mejoras UX ✓ completada
+- [x] Overlay muestra estado "transcribiendo" tras soltar el hotkey
+- [x] Cancelar transcripción en curso si el usuario vuelve a presionar el hotkey
+- [x] Errores de Ollama visibles en la UI (overlay auto-dismiss 3s, sin modal bloqueante)
+- [x] Hotkey: docs corregidos (Right Command `0x36`, no Right Option)
+
+### Fase 2 — Post-procesado LLM
+- [ ] Testear modo `llmRewrite` con Ollama + Gemma4 end-to-end
+- [ ] Refinar prompt de reescritura en `OllamaClient.swift`
+
+### Fase 3 — Base de datos local + historial + métricas
+- [ ] SwiftData para persistencia local (solo en el dispositivo del usuario)
+- [ ] Ventana de historial de transcripciones
+- [ ] Métricas: WPM, frecuencia por app, por idioma, por hora del día
 
 ## Docs adicionales
 
