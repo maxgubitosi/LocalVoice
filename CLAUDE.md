@@ -67,10 +67,10 @@ HotkeyManager.onHotkeyUp
 
 | Dispositivo | Modelo | Por qué |
 |---|---|---|
-| M1/M2 o <16GB RAM | `gemma4:2b` | Más rápido, menor consumo |
-| M3/M4 o ≥16GB RAM | `gemma4:4b` | Mejor calidad, el hardware lo aguanta |
+| M1/M2 o <16GB RAM | `gemma4:e2b` | Más rápido, menor consumo |
+| M3/M4 o ≥16GB RAM | `gemma4:e4b` | Mejor calidad, el hardware lo aguanta |
 
-Para instalar: `ollama pull gemma4:2b` o `ollama pull gemma4:4b`
+Para instalar: `ollama pull gemma4:e2b` o `ollama pull gemma4:e4b`
 
 ## Inserción de texto — reglas importantes
 

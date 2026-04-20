@@ -7,17 +7,17 @@ enum DeviceCapability {
     /// - e2b: lighter, faster — for M1/M2 or <16GB RAM
     /// - e4b: more capable — for M3/M4 or ≥16GB RAM
     static var recommendedGemmaModel: String {
-        if shouldUseHeavierModel { return "gemma4:4b" }
-        return "gemma4:2b"
+        if shouldUseHeavierModel { return "gemma4:e4b" }
+        return "gemma4:e2b"
     }
 
     static var recommendedGemmaModelReason: String {
         let chip = chipGeneration
         let ram = physicalMemoryGB
         if shouldUseHeavierModel {
-            return "gemma4:4b — recomendado para tu \(chip) con \(ram)GB RAM"
+            return "gemma4:e4b — recomendado para tu \(chip) con \(ram)GB RAM"
         }
-        return "gemma4:2b — recomendado para tu \(chip) con \(ram)GB RAM (más rápido, menor consumo)"
+        return "gemma4:e2b — recomendado para tu \(chip) con \(ram)GB RAM (más rápido, menor consumo)"
     }
 
     // MARK: - Private

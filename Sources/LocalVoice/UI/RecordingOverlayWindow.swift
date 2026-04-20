@@ -3,7 +3,8 @@ import SwiftUI
 
 enum OverlayState {
     case recording
-    case processing
+    case transcribing
+    case refining(transcript: String)
     case error(String)
 }
 
@@ -11,21 +12,20 @@ final class OverlayViewModel: ObservableObject {
     @Published var state: OverlayState = .recording
 }
 
+private let overlayWindowSize = CGSize(width: 320, height: 96)
+
 final class RecordingOverlayWindow: NSWindow {
     private let viewModel = OverlayViewModel()
 
     init() {
-        let windowSize = CGSize(width: 220, height: 64)
         let screen = NSScreen.main ?? NSScreen.screens[0]
-        let frame = CGRect(
-            x: screen.visibleFrame.maxX - windowSize.width - 24,
-            y: screen.visibleFrame.minY + 24,
-            width: windowSize.width,
-            height: windowSize.height
+        let origin = CGPoint(
+            x: screen.visibleFrame.maxX - overlayWindowSize.width - 16,
+            y: screen.visibleFrame.minY + 16
         )
 
         super.init(
-            contentRect: frame,
+            contentRect: CGRect(origin: origin, size: overlayWindowSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -34,17 +34,17 @@ final class RecordingOverlayWindow: NSWindow {
         level = .floating
         backgroundColor = .clear
         isOpaque = false
-        hasShadow = true
+        hasShadow = false
         ignoresMouseEvents = true
         collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
 
-        let view = RecordingOverlayView(viewModel: viewModel)
-        let hosting = NSHostingView(rootView: view)
-        hosting.frame = CGRect(origin: .zero, size: windowSize)
+        let hosting = NSHostingView(rootView: RecordingOverlayView(viewModel: viewModel))
+        hosting.autoresizingMask = [.width, .height]
+        hosting.frame = CGRect(origin: .zero, size: overlayWindowSize)
         contentView = hosting
     }
 
-    func show(state: OverlayState = .recording) {
+    func show(state: OverlayState) {
         viewModel.state = state
         if !isVisible {
             alphaValue = 0
@@ -56,9 +56,9 @@ final class RecordingOverlayWindow: NSWindow {
         }
     }
 
-    func showProcessing() {
-        show(state: .processing)
-    }
+    func showTranscribing() { show(state: .transcribing) }
+
+    func showRefining(transcript: String) { show(state: .refining(transcript: transcript)) }
 
     func showError(_ message: String) {
         show(state: .error(message))
@@ -75,83 +75,126 @@ final class RecordingOverlayWindow: NSWindow {
     }
 }
 
-// MARK: - SwiftUI View
+// MARK: - SwiftUI root
 
 struct RecordingOverlayView: View {
     @ObservedObject var viewModel: OverlayViewModel
 
-    var body: some View {
-        Group {
-            switch viewModel.state {
-            case .recording:
-                RecordingContent()
-            case .processing:
-                ProcessingContent()
-            case .error(let message):
-                ErrorContent(message: message)
-            }
+    private var stateID: Int {
+        switch viewModel.state {
+        case .recording:    return 0
+        case .transcribing: return 1
+        case .refining:     return 2
+        case .error:        return 3
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(backgroundFill)
-        )
-        .frame(width: 220, height: 64)
     }
 
-    private var backgroundFill: Color {
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Color.clear
+            stateView
+                .animation(.easeInOut(duration: 0.18), value: stateID)
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
+        }
+        .frame(width: overlayWindowSize.width, height: overlayWindowSize.height)
+    }
+
+    @ViewBuilder
+    private var stateView: some View {
         switch viewModel.state {
-        case .error: return Color(red: 0.5, green: 0.1, blue: 0.0).opacity(0.92)
-        default:     return Color.black.opacity(0.82)
+        case .recording:
+            RecordingContent()
+        case .transcribing:
+            SpinnerContent(label: "Transcribiendo…", tint: .white)
+        case .refining(let transcript):
+            RefiningContent(transcript: transcript)
+        case .error(let message):
+            ErrorContent(message: message)
         }
     }
 }
 
+// MARK: - State views
+
 private struct RecordingContent: View {
     @State private var pulsing = false
-    @State private var bars: [CGFloat] = Array(repeating: 0.3, count: 12)
+    @State private var bars: [CGFloat] = Array(repeating: 0.3, count: 8)
     private let timer = Timer.publish(every: 0.12, on: .main, in: .common).autoconnect()
 
     var body: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 10, height: 10)
-                .scaleEffect(pulsing ? 1.3 : 1.0)
-                .animation(.easeInOut(duration: 0.6).repeatForever(), value: pulsing)
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.3))
+                    .frame(width: 22, height: 22)
+                    .scaleEffect(pulsing ? 1.5 : 1.0)
+                    .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 9, height: 9)
+            }
 
-            HStack(spacing: 3) {
+            HStack(spacing: 2.5) {
                 ForEach(bars.indices, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.white)
-                        .frame(width: 3, height: bars[i] * 36 + 6)
+                        .fill(Color.white.opacity(0.85))
+                        .frame(width: 3, height: bars[i] * 26 + 4)
                         .animation(.easeInOut(duration: 0.1), value: bars[i])
                 }
             }
-            .frame(height: 40)
-
-            Text("Recording…")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundColor(.white)
+            .frame(height: 34)
         }
+        .pillStyle()
         .onAppear { pulsing = true }
         .onReceive(timer) { _ in bars = bars.map { _ in CGFloat.random(in: 0.1...1.0) } }
     }
 }
 
-private struct ProcessingContent: View {
+private struct SpinnerContent: View {
+    let label: String
+    let tint: Color
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             ProgressView()
                 .progressViewStyle(.circular)
-                .scaleEffect(0.8)
-                .tint(.white)
+                .scaleEffect(0.75)
+                .tint(tint)
+                .frame(width: 18, height: 18)
 
-            Text("Transcribiendo…")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
+            Text(label)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
         }
+        .pillStyle()
+    }
+}
+
+private struct RefiningContent: View {
+    let transcript: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(0.75)
+                .tint(Color(red: 0.45, green: 0.75, blue: 1.0))
+                .frame(width: 18, height: 18)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Mejorando…")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                Text(transcript)
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 230, alignment: .leading)
+            }
+        }
+        .pillStyle()
     }
 }
 
@@ -168,6 +211,31 @@ private struct ErrorContent: View {
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(2)
+                .frame(maxWidth: 220, alignment: .leading)
         }
+        .pillStyle(background: Color(red: 0.35, green: 0.07, blue: 0.0).opacity(0.95))
+    }
+}
+
+// MARK: - Shared pill style
+
+private struct PillModifier: ViewModifier {
+    var background: Color
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                Capsule()
+                    .fill(background)
+                    .shadow(color: .black.opacity(0.45), radius: 14, x: 0, y: 5)
+            )
+    }
+}
+
+private extension View {
+    func pillStyle(background: Color = Color(white: 0.1, opacity: 0.92)) -> some View {
+        modifier(PillModifier(background: background))
     }
 }

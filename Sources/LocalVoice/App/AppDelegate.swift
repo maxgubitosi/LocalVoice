@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         transcriptionEngine = TranscriptionEngine()
         ollamaClient = OllamaClient()
+        ollamaClient.model = appSettings.ollamaModel
         textInserter = TextInserter()
         audioCapture = AudioCapture()
         recordingOverlay = RecordingOverlayWindow()
@@ -53,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func stopAndProcess() {
         audioCapture.stopRecording { [weak self] audioBuffer in
             guard let self else { return }
-            DispatchQueue.main.async { self.recordingOverlay.showProcessing() }
+            DispatchQueue.main.async { self.recordingOverlay.showTranscribing() }
 
             guard let buffer = audioBuffer else {
                 DispatchQueue.main.async { self.recordingOverlay.hide() }
@@ -76,6 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                     let finalText: String
                     if self.appSettings.mode == .llmRewrite {
+                        await MainActor.run { self.recordingOverlay.showRefining(transcript: transcript) }
                         finalText = try await self.ollamaClient.rewrite(transcript: transcript)
                     } else {
                         finalText = transcript
@@ -101,6 +103,7 @@ extension AppDelegate: MenuBarDelegate {
     }
     func ollamaModelChanged(to model: String) {
         appSettings.ollamaModel = model
+        ollamaClient.model = model
     }
     func whisperModelChanged(to model: String) {
         appSettings.whisperModel = model

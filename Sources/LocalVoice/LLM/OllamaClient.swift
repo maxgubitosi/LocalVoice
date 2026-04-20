@@ -8,8 +8,8 @@ final class OllamaClient {
 
     init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 60
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 300
         session = URLSession(configuration: config)
     }
 
@@ -42,6 +42,9 @@ final class OllamaClient {
             throw OllamaError.invalidResponse
         }
         guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 404 {
+                throw OllamaError.modelNotFound(model: model)
+            }
             throw OllamaError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -91,13 +94,15 @@ private struct OllamaTagsResponse: Decodable {
 enum OllamaError: LocalizedError {
     case invalidResponse
     case httpError(statusCode: Int)
+    case modelNotFound(model: String)
     case notRunning
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse:        return "Invalid response from Ollama"
-        case .httpError(let code):    return "Ollama HTTP error: \(code)"
-        case .notRunning:             return "Ollama is not running. Start it with: ollama serve"
+        case .invalidResponse:            return "Invalid response from Ollama"
+        case .httpError(let code):        return "Ollama HTTP error: \(code)"
+        case .modelNotFound(let model):   return "Model '\(model)' not pulled. Run: ollama pull \(model)"
+        case .notRunning:                 return "Ollama is not running. Start it with: ollama serve"
         }
     }
 }
