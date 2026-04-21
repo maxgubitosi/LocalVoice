@@ -44,6 +44,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.onHotkeyUp   = { [weak self] in self?.stopAndProcess() }
 
         Task { await transcriptionEngine.loadModel(named: appSettings.whisperModel) }
+
+        appSettings.$whisperModel
+            .dropFirst()
+            .sink { [weak self] model in
+                Task { await self?.transcriptionEngine.loadModel(named: model) }
+            }
+            .store(in: &cancellables)
     }
 
     private func requestPermissions() {
@@ -104,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let startTime = self.recordingStartTime
                     let targetApp = self.recordingTargetApp
                     let mode = self.appSettings.mode
-                    let whisperModel = self.appSettings.whisperModel
+                    let whisperModel = TranscriptionEngine.displayName(for: self.appSettings.whisperModel)
                     let ollamaModel = self.appSettings.ollamaModel
                     let saveText = self.appSettings.saveTranscribedText
                     let detectedLanguage = output.language
@@ -150,7 +157,6 @@ extension AppDelegate: MenuBarDelegate {
     }
     func whisperModelChanged(to model: String) {
         appSettings.whisperModel = model
-        Task { await transcriptionEngine.loadModel(named: model) }
     }
     func languageChanged(to language: TranscriptionLanguage) {
         appSettings.transcriptionLanguage = language

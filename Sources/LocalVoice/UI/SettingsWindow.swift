@@ -33,10 +33,10 @@ struct SettingsView: View {
             Section("Transcription") {
                 Picker("Model", selection: $settings.whisperModel) {
                     ForEach(TranscriptionEngine.availableModels, id: \.self) { model in
-                        Text(model).tag(model)
+                        Text(TranscriptionEngine.modelDisplayNames[model] ?? model).tag(model)
                     }
                 }
-                Text("Larger models are more accurate but slower. 'base' recommended for real-time use.")
+                Text("'large-v3-turbo' para mejor calidad. 'base' o 'small' para uso en tiempo real.")
                     .font(.caption)
                     .foregroundColor(.secondary)
 

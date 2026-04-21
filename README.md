@@ -74,15 +74,16 @@ Go to **System Settings → Privacy & Security** to grant these. The app won't w
 
 ## Whisper Models
 
-| Model | Speed | Accuracy | VRAM |
+| Model | Speed | Accuracy | RAM |
 |---|---|---|---|
 | tiny | ~0.1s | Good | ~75 MB |
 | base | ~0.2s | Better | ~145 MB |
 | small | ~0.5s | Great | ~465 MB |
 | medium | ~1.5s | Excellent | ~1.5 GB |
+| **large-v3-turbo** | ~2s | **Best (recommended)** | ~800 MB |
 | large-v3 | ~3s | Best | ~3 GB |
 
-Default: `base` — best balance of speed and accuracy for real-time use. Switch models from the menu bar.
+Default: `large-v3-turbo` — best quality-to-speed ratio. Uses OpenAI's turbo decoder (4-layer vs 32 in large-v3) for 6× faster inference with minimal quality loss. Runs comfortably on M1 8 GB. Switch models from the menu bar or Settings.
 
 ## Architecture
 

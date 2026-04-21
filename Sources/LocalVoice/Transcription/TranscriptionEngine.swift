@@ -5,18 +5,19 @@ final class TranscriptionEngine {
     private var whisper: WhisperKit?
     private var currentModel: String = "base"
 
-    func loadModel(named model: String = "base") async {
+    func loadModel(named model: String = "openai_whisper-large-v3_turbo") async {
         currentModel = model
+        let name = TranscriptionEngine.displayName(for: model)
         do {
             let modelDir = try modelDirectory()
             if !modelAlreadyDownloaded(model, in: modelDir) {
-                print("[TranscriptionEngine] Downloading '\(model)' for the first time — this may take a minute...")
+                print("[TranscriptionEngine] Downloading '\(name)' for the first time — this may take a minute...")
             }
-            print("[TranscriptionEngine] Loading model '\(model)'...")
+            print("[TranscriptionEngine] Loading model '\(name)'...")
             whisper = try await WhisperKit(model: model, downloadBase: modelDir)
             print("[TranscriptionEngine] Ready.")
         } catch {
-            print("[TranscriptionEngine] Failed to load model '\(model)': \(error)")
+            print("[TranscriptionEngine] Failed to load model '\(name)': \(error)")
         }
     }
 
@@ -59,7 +60,15 @@ final class TranscriptionEngine {
 
     // MARK: - Available models
 
-    static let availableModels = ["tiny", "base", "small", "medium", "large-v3"]
+    static let availableModels = ["tiny", "base", "small", "medium", "openai_whisper-large-v3_turbo", "large-v3"]
+
+    static let modelDisplayNames: [String: String] = [
+        "openai_whisper-large-v3_turbo": "large-v3-turbo",
+    ]
+
+    static func displayName(for model: String) -> String {
+        modelDisplayNames[model] ?? model
+    }
 }
 
 struct TranscriptionOutput {

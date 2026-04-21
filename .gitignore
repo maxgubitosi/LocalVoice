@@ -37,3 +37,10 @@ Package.resolved
 
 # Claude AI memory (local only)
 memory/
+
+# Benchmark inputs and outputs
+Benchmark/inputs/
+Benchmark/outputs/
+
+# Ignore all .m4a files
+*.m4a

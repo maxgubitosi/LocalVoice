@@ -39,11 +39,17 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(saveTranscribedText, forKey: "saveTranscribedText") }
     }
 
+    // Maps legacy/incorrect model names to their canonical WhisperKit identifiers.
+    private static let modelMigrations: [String: String] = [
+        "large-v3-turbo": "openai_whisper-large-v3_turbo",
+    ]
+
     init() {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
         self.mode = AppMode(rawValue: rawMode) ?? .directTranscription
         self.ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? DeviceCapability.recommendedGemmaModel
-        self.whisperModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "base"
+        let savedModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "openai_whisper-large-v3_turbo"
+        self.whisperModel = AppSettings.modelMigrations[savedModel] ?? savedModel
         let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
         self.hotkeyKeyCode = saved > 0 ? UInt16(saved) : 63
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""

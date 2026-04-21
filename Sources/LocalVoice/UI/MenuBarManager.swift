@@ -87,7 +87,7 @@ final class MenuBarManager: NSObject {
         let whisperSubmenu = NSMenu()
         for model in TranscriptionEngine.availableModels {
             let item = NSMenuItem(
-                title: model,
+                title: TranscriptionEngine.displayName(for: model),
                 action: #selector(whisperModelSelected(_:)),
                 keyEquivalent: ""
             )
