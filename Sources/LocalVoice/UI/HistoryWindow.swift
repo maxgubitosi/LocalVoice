@@ -158,6 +158,11 @@ struct RecordRow: View {
                         ? Color.purple.opacity(0.15)
                         : Color.blue.opacity(0.12))
                     .clipShape(Capsule())
+                if record.mode == AppMode.llmRewrite.rawValue, let pname = record.promptName {
+                    Text(pname)
+                        .font(.caption2)
+                        .foregroundColor(.purple.opacity(0.8))
+                }
                 if let lang = record.detectedLanguage {
                     Text(lang.uppercased())
                         .font(.caption2.bold())
@@ -207,7 +212,7 @@ struct ExportButton: View {
     }
 
     private func buildCSV() -> String {
-        let header = "timestamp,app,mode,whisperModel,ollamaModel,wordCount,durationSeconds,wpm,language,text"
+        let header = "timestamp,app,mode,whisperModel,ollamaModel,wordCount,durationSeconds,wpm,language,promptName,text"
         let rows = records.map { r -> String in
             let wpm: String = r.audioDurationSeconds > 0
                 ? String(format: "%.1f", Double(r.wordCount) / r.audioDurationSeconds * 60)
@@ -222,6 +227,7 @@ struct ExportButton: View {
                 String(format: "%.2f", r.audioDurationSeconds),
                 wpm,
                 escape(r.detectedLanguage ?? ""),
+                escape(r.promptName ?? ""),
                 escape(r.transcribedText ?? "")
             ]
             return fields.joined(separator: ",")
