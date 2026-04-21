@@ -2,22 +2,23 @@ import SwiftUI
 import AppKit
 
 final class SettingsWindowController: NSWindowController {
-    convenience init(settings: AppSettings) {
+    convenience init(settings: AppSettings, promptStore: PromptStore) {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 400, height: 440),
+            contentRect: CGRect(x: 0, y: 0, width: 400, height: 520),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
         window.title = "LocalVoice Settings"
         window.center()
-        window.contentView = NSHostingView(rootView: SettingsView(settings: settings))
+        window.contentView = NSHostingView(rootView: SettingsView(settings: settings, promptStore: promptStore))
         self.init(window: window)
     }
 }
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
+    let promptStore: PromptStore
 
     var body: some View {
         Form {
@@ -55,6 +56,17 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             }
 
+            Section("LLM Prompt") {
+                Picker("Active Prompt", selection: $settings.activePromptID) {
+                    ForEach(promptStore.prompts) { p in
+                        Text(p.name).tag(Optional(p.id))
+                    }
+                }
+                Text("Hold Right ⌘ + number key to temporarily use a different prompt.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Privacy") {
                 Toggle("Save transcribed text in history", isOn: $settings.saveTranscribedText)
                 Text("Text is stored locally only, never sent to any server.")
@@ -64,6 +76,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .frame(width: 400, height: 440)
+        .frame(width: 400, height: 520)
     }
 }
