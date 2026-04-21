@@ -38,7 +38,7 @@ final class TranscriptionEngine {
         return dir
     }
 
-    func transcribe(buffer: [Float], language: String? = nil) async throws -> String {
+    func transcribe(buffer: [Float], language: String? = nil) async throws -> TranscriptionOutput {
         guard let whisper else {
             throw TranscriptionError.modelNotLoaded
         }
@@ -53,12 +53,18 @@ final class TranscriptionEngine {
         )
 
         let results = try await whisper.transcribe(audioArray: buffer, decodeOptions: options)
-        return results.map { $0.text }.joined(separator: " ").trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        let text = results.map { $0.text }.joined(separator: " ").trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        return TranscriptionOutput(text: text, language: results.first?.language)
     }
 
     // MARK: - Available models
 
     static let availableModels = ["tiny", "base", "small", "medium", "large-v3"]
+}
+
+struct TranscriptionOutput {
+    let text: String
+    let language: String?
 }
 
 enum TranscriptionError: LocalizedError {

@@ -35,15 +35,18 @@ Sources/LocalVoice/
 │   ├── AudioCapture.swift        # AVAudioEngine → Float32 16kHz mono
 │   └── HotkeyManager.swift       # CGEventTap en Right Option key
 ├── Transcription/
-│   └── TranscriptionEngine.swift # wrapper WhisperKit, carga modelo async
+│   └── TranscriptionEngine.swift # wrapper WhisperKit, retorna TranscriptionOutput {text, language}
 ├── LLM/
 │   └── OllamaClient.swift        # HTTP client localhost:11434
+├── Persistence/
+│   └── TranscriptionRecord.swift # @Model SwiftData — historial local
 ├── TextInsertion/
 │   └── TextInserter.swift        # AXUIElement (tier 1) + pasteboard (tier 2)
 └── UI/
     ├── MenuBarManager.swift       # NSStatusItem + NSMenu
     ├── RecordingOverlayWindow.swift # overlay flotante SwiftUI animado
-    └── SettingsWindow.swift       # NSWindow + SwiftUI Form
+    ├── SettingsWindow.swift       # NSWindow + SwiftUI Form
+    └── HistoryWindow.swift        # ventana historial con stats y export CSV
 ```
 
 ## Pipeline de datos
@@ -134,14 +137,25 @@ Modificar `DeviceCapability.swift` → `recommendedGemmaModel` y la tabla de `sh
 - [x] Errores de Ollama visibles en la UI (overlay auto-dismiss 3s, sin modal bloqueante)
 - [x] Hotkey: docs corregidos (Right Command `0x36`, no Right Option)
 
-### Fase 2 — Post-procesado LLM
-- [ ] Testear modo `llmRewrite` con Ollama + Gemma4 end-to-end
-- [ ] Refinar prompt de reescritura en `OllamaClient.swift`
+### Fase 2 — Post-procesado LLM ✓ completada
+- [x] Pipeline llmRewrite funcionando end-to-end con Ollama + Gemma4
+- [x] Overlay diferenciado: "Transcribiendo…" → "Mejorando…" con preview del transcript
+- [x] Nombres de modelos corregidos (`gemma4:e2b` / `gemma4:e4b`)
+- [x] Timeout Ollama extendido (120s request / 300s resource)
 
-### Fase 3 — Base de datos local + historial + métricas
-- [ ] SwiftData para persistencia local (solo en el dispositivo del usuario)
-- [ ] Ventana de historial de transcripciones
-- [ ] Métricas: WPM, frecuencia por app, por idioma, por hora del día
+### Fase 3 — Base de datos local + historial + métricas ✓ completada
+- [x] SwiftData para persistencia local (`~/Library/Application Support/LocalVoice/`)
+- [x] `TranscriptionRecord` guarda: timestamp, duración de audio, palabras, idioma detectado, app destino, modo, modelo Whisper, modelo Ollama, latencia Ollama
+- [x] Texto transcrito opt-in (default off) — configurable en Settings → Privacy
+- [x] Ventana History accesible desde el menú (⌘H): stats, lista de registros, export CSV
+- [x] Métricas en UI: total grabaciones, total palabras, WPM promedio (calculado sobre duración real del audio)
+
+### Fase 4 — Prompts avanzados con contexto (requiere Fase 3)
+> Implementar recién cuando la base de datos esté lista y se esté almacenando contexto.
+- [ ] Múltiples prompts configurables por el usuario (ej. "corregir", "resumir", "formalizar")
+- [ ] Shortcuts por prompt
+- [ ] Detección de la app activa para adaptar el prompt al contexto (ej. en Cursor: corregir nombres de variables del proyecto, entender terminología del codebase)
+- [ ] El modelo recibe contexto de la app de destino antes de reescribir
 
 ## Docs adicionales
 

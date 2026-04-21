@@ -4,7 +4,7 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     convenience init(settings: AppSettings) {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 400, height: 380),
+            contentRect: CGRect(x: 0, y: 0, width: 400, height: 440),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -54,9 +54,16 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+
+            Section("Privacy") {
+                Toggle("Save transcribed text in history", isOn: $settings.saveTranscribedText)
+                Text("Text is stored locally only, never sent to any server.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
         .formStyle(.grouped)
         .padding()
-        .frame(width: 400, height: 380)
+        .frame(width: 400, height: 440)
     }
 }

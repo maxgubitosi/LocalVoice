@@ -35,6 +35,9 @@ final class AppSettings: ObservableObject {
     @Published var transcriptionLanguage: TranscriptionLanguage {
         didSet { UserDefaults.standard.set(transcriptionLanguage.rawValue, forKey: "transcriptionLanguage") }
     }
+    @Published var saveTranscribedText: Bool {
+        didSet { UserDefaults.standard.set(saveTranscribedText, forKey: "saveTranscribedText") }
+    }
 
     init() {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
@@ -45,5 +48,6 @@ final class AppSettings: ObservableObject {
         self.hotkeyKeyCode = saved > 0 ? UInt16(saved) : 63
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
         self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .auto
+        self.saveTranscribedText = UserDefaults.standard.bool(forKey: "saveTranscribedText")
     }
 }

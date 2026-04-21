@@ -5,6 +5,7 @@ protocol MenuBarDelegate: AnyObject {
     func ollamaModelChanged(to model: String)
     func whisperModelChanged(to model: String)
     func languageChanged(to language: TranscriptionLanguage)
+    func showHistory()
     func quitApp()
 }
 
@@ -99,6 +100,13 @@ final class MenuBarManager: NSObject {
 
         menu.addItem(.separator())
 
+        // History
+        let historyItem = NSMenuItem(title: "History…", action: #selector(historySelected), keyEquivalent: "h")
+        historyItem.target = self
+        menu.addItem(historyItem)
+
+        menu.addItem(.separator())
+
         // Hotkey hint
         let hotkeyHint = NSMenuItem(title: "Hold Right ⌘ to record", action: nil, keyEquivalent: "")
         hotkeyHint.isEnabled = false
@@ -130,6 +138,10 @@ final class MenuBarManager: NSObject {
         guard let language = sender.representedObject as? TranscriptionLanguage else { return }
         delegate?.languageChanged(to: language)
         rebuildMenuCheckmarks()
+    }
+
+    @objc private func historySelected() {
+        delegate?.showHistory()
     }
 
     @objc private func quitSelected() {
