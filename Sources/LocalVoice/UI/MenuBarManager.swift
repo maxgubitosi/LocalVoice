@@ -6,6 +6,7 @@ protocol MenuBarDelegate: AnyObject {
     func whisperModelChanged(to model: String)
     func languageChanged(to language: TranscriptionLanguage)
     func showHistory()
+    func showSettings()
     func quitApp()
 }
 
@@ -105,6 +106,11 @@ final class MenuBarManager: NSObject {
         historyItem.target = self
         menu.addItem(historyItem)
 
+        // Settings
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(settingsSelected), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
         menu.addItem(.separator())
 
         // Hotkey hint
@@ -142,6 +148,10 @@ final class MenuBarManager: NSObject {
 
     @objc private func historySelected() {
         delegate?.showHistory()
+    }
+
+    @objc private func settingsSelected() {
+        delegate?.showSettings()
     }
 
     @objc private func quitSelected() {

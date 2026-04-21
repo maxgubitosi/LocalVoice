@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var textInserter: TextInserter!
     private var recordingOverlay: RecordingOverlayWindow!
     private var historyWindow: HistoryWindowController?
+    private var settingsWindow: SettingsWindowController?
     private var cancellables = Set<AnyCancellable>()
 
     private var modelContainer: ModelContainer!
@@ -159,6 +160,13 @@ extension AppDelegate: MenuBarDelegate {
             historyWindow = HistoryWindowController(modelContainer: modelContainer)
         }
         historyWindow?.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    func showSettings() {
+        if settingsWindow == nil {
+            settingsWindow = SettingsWindowController(settings: appSettings)
+        }
+        settingsWindow?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
     func quitApp() {
