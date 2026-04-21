@@ -14,7 +14,9 @@ final class PromptStore {
             prompts = decoded
         } else {
             prompts = LLMPrompt.allPresets
-            save()
+            if !FileManager.default.fileExists(atPath: fileURL.path) {
+                save()
+            }
         }
     }
 
@@ -32,8 +34,8 @@ final class PromptStore {
     }
 
     func update(_ prompt: LLMPrompt) {
-        guard !prompt.isPreset,
-              let index = prompts.firstIndex(where: { $0.id == prompt.id }) else { return }
+        guard let index = prompts.firstIndex(where: { $0.id == prompt.id }),
+              !prompts[index].isPreset else { return }
         prompts[index] = prompt
         save()
     }
@@ -49,6 +51,6 @@ final class PromptStore {
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-        try? data.write(to: fileURL)
+        try? data.write(to: fileURL, options: .atomic)
     }
 }
