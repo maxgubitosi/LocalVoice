@@ -5,6 +5,7 @@ protocol MenuBarDelegate: AnyObject {
     func ollamaModelChanged(to model: String)
     func whisperModelChanged(to model: String)
     func languageChanged(to language: TranscriptionLanguage)
+    func promptChanged(to id: UUID)
     func showHistory()
     func showSettings()
     func quitApp()
@@ -13,12 +14,14 @@ protocol MenuBarDelegate: AnyObject {
 final class MenuBarManager: NSObject {
     private let statusItem: NSStatusItem
     private let settings: AppSettings
+    private let promptStore: PromptStore
     private weak var delegate: MenuBarDelegate?
 
     private var statusButton: NSStatusBarButton? { statusItem.button }
 
-    init(settings: AppSettings, delegate: MenuBarDelegate) {
+    init(settings: AppSettings, promptStore: PromptStore, delegate: MenuBarDelegate) {
         self.settings = settings
+        self.promptStore = promptStore
         self.delegate = delegate
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
@@ -99,6 +102,20 @@ final class MenuBarManager: NSObject {
         whisperItem.submenu = whisperSubmenu
         menu.addItem(whisperItem)
 
+        // Prompt
+        let promptItem = NSMenuItem(title: "Prompt", action: nil, keyEquivalent: "")
+        let promptSubmenu = NSMenu()
+        for p in promptStore.prompts {
+            let label = p.keyNumber.map { "\(p.name)  [\($0)]" } ?? p.name
+            let item = NSMenuItem(title: label, action: #selector(promptSelected(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = p.id
+            item.state = (p.id == settings.activePromptID) ? .on : .off
+            promptSubmenu.addItem(item)
+        }
+        promptItem.submenu = promptSubmenu
+        menu.addItem(promptItem)
+
         menu.addItem(.separator())
 
         // History
@@ -143,6 +160,12 @@ final class MenuBarManager: NSObject {
     @objc private func languageSelected(_ sender: NSMenuItem) {
         guard let language = sender.representedObject as? TranscriptionLanguage else { return }
         delegate?.languageChanged(to: language)
+        rebuildMenuCheckmarks()
+    }
+
+    @objc private func promptSelected(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID else { return }
+        delegate?.promptChanged(to: id)
         rebuildMenuCheckmarks()
     }
 
