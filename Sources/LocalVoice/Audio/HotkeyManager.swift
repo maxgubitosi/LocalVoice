@@ -7,6 +7,12 @@ import AppKit
 final class HotkeyManager {
     var onHotkeyDown: (() -> Void)?
     var onHotkeyUp:   (() -> Void)?
+    var onPromptKeyPressed: ((Int) -> Void)?
+
+    private static let digitKeyCodes: [CGKeyCode: Int] = [
+        0x12: 1, 0x13: 2, 0x14: 3, 0x15: 4,
+        0x17: 5, 0x16: 6, 0x1A: 7, 0x1C: 8, 0x19: 9
+    ]
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -74,6 +80,17 @@ final class HotkeyManager {
                 DispatchQueue.main.async { self.handleKeyUp() }
             }
             return nil
+        }
+
+        if type == .keyDown {
+            if state == .held || state == .latched {
+                let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+                if let digit = Self.digitKeyCodes[keyCode] {
+                    DispatchQueue.main.async { self.onPromptKeyPressed?(digit) }
+                    return nil
+                }
+            }
+            return Unmanaged.passUnretained(event)
         }
 
         if type == .flagsChanged {
