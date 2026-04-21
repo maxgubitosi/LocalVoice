@@ -18,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var modelContainer: ModelContainer!
     private var recordingStartTime: Date = Date()
     private var recordingTargetApp: (bundleID: String, name: String)? = nil
+    private var promptStore: PromptStore!
+    private var sessionPromptKeyNumber: Int? = nil
 
     var appSettings = AppSettings()
 
@@ -29,10 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         transcriptionEngine = TranscriptionEngine()
         ollamaClient = OllamaClient()
         ollamaClient.model = appSettings.ollamaModel
+        promptStore = PromptStore()
         textInserter = TextInserter()
         audioCapture = AudioCapture()
         recordingOverlay = RecordingOverlayWindow()
-        menuBarManager = MenuBarManager(settings: appSettings, delegate: self)
+        menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self)
         hotkeyManager = HotkeyManager()
 
         hotkeyManager.onHotkeyDown = { [weak self] in
@@ -42,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.startRecording()
         }
         hotkeyManager.onHotkeyUp   = { [weak self] in self?.stopAndProcess() }
+        hotkeyManager.onPromptKeyPressed = { [weak self] n in self?.sessionPromptKeyNumber = n }
 
         Task { await transcriptionEngine.loadModel(named: appSettings.whisperModel) }
 
@@ -72,6 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func stopAndProcess() {
+        let capturedKeyNumber = sessionPromptKeyNumber
+        sessionPromptKeyNumber = nil
         audioCapture.stopRecording { [weak self] audioBuffer in
             guard let self else { return }
             DispatchQueue.main.async { self.recordingOverlay.showTranscribing() }
@@ -95,13 +101,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return
                     }
 
+                    let activePrompt: LLMPrompt
+                    if let n = capturedKeyNumber, let p = self.promptStore.prompt(withKeyNumber: n) {
+                        activePrompt = p
+                    } else {
+                        activePrompt = self.promptStore.activePrompt(id: self.appSettings.activePromptID)
+                    }
+
                     let finalText: String
                     var ollamaLatency: Double? = nil
 
                     if self.appSettings.mode == .llmRewrite {
                         await MainActor.run { self.recordingOverlay.showRefining(transcript: output.text) }
                         let ollamaStart = Date()
-                        finalText = try await self.ollamaClient.rewrite(transcript: output.text)
+                        finalText = try await self.ollamaClient.rewrite(
+                            transcript: output.text,
+                            prompt: activePrompt,
+                            appContext: self.recordingTargetApp?.name
+                        )
                         ollamaLatency = Date().timeIntervalSince(ollamaStart)
                     } else {
                         finalText = output.text
@@ -117,6 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let detectedLanguage = output.language
                     let capturedOllamaLatency = ollamaLatency
                     let audioDuration = Double(buffer.count) / 16000.0
+                    let capturedPromptName: String? = mode == .llmRewrite ? activePrompt.name : nil
 
                     await MainActor.run {
                         self.textInserter.insert(text: finalText)
@@ -134,7 +152,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             whisperModel: whisperModel,
                             ollamaModel: mode == .llmRewrite ? ollamaModel : nil,
                             ollamaLatencySeconds: capturedOllamaLatency,
-                            transcribedText: saveText ? finalText : nil
+                            transcribedText: saveText ? finalText : nil,
+                            promptName: capturedPromptName
                         )
                         self.modelContainer.mainContext.insert(record)
                     }
@@ -161,6 +180,9 @@ extension AppDelegate: MenuBarDelegate {
     func languageChanged(to language: TranscriptionLanguage) {
         appSettings.transcriptionLanguage = language
     }
+    func promptChanged(to id: UUID) {
+        appSettings.activePromptID = id
+    }
     func showHistory() {
         if historyWindow == nil {
             historyWindow = HistoryWindowController(modelContainer: modelContainer)
@@ -170,7 +192,7 @@ extension AppDelegate: MenuBarDelegate {
     }
     func showSettings() {
         if settingsWindow == nil {
-            settingsWindow = SettingsWindowController(settings: appSettings)
+            settingsWindow = SettingsWindowController(settings: appSettings, promptStore: promptStore)
         }
         settingsWindow?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
