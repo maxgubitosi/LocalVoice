@@ -14,6 +14,7 @@ final class TranscriptionRecord {
     var ollamaModel: String?
     var ollamaLatencySeconds: Double?
     var transcribedText: String?
+    var promptName: String?
 
     init(
         timestamp: Date,
@@ -26,7 +27,8 @@ final class TranscriptionRecord {
         whisperModel: String,
         ollamaModel: String?,
         ollamaLatencySeconds: Double?,
-        transcribedText: String?
+        transcribedText: String?,
+        promptName: String?
     ) {
         self.timestamp = timestamp
         self.audioDurationSeconds = audioDurationSeconds
@@ -39,5 +41,6 @@ final class TranscriptionRecord {
         self.ollamaModel = ollamaModel
         self.ollamaLatencySeconds = ollamaLatencySeconds
         self.transcribedText = transcribedText
+        self.promptName = promptName
     }
 }

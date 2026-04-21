@@ -38,6 +38,9 @@ final class AppSettings: ObservableObject {
     @Published var saveTranscribedText: Bool {
         didSet { UserDefaults.standard.set(saveTranscribedText, forKey: "saveTranscribedText") }
     }
+    @Published var activePromptID: UUID? {
+        didSet { UserDefaults.standard.set(activePromptID?.uuidString, forKey: "activePromptID") }
+    }
 
     // Maps legacy/incorrect model names to their canonical WhisperKit identifiers.
     private static let modelMigrations: [String: String] = [
@@ -55,5 +58,7 @@ final class AppSettings: ObservableObject {
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
         self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .auto
         self.saveTranscribedText = UserDefaults.standard.bool(forKey: "saveTranscribedText")
+        let savedPromptID = UserDefaults.standard.string(forKey: "activePromptID")
+        self.activePromptID = savedPromptID.flatMap { UUID(uuidString: $0) }
     }
 }
