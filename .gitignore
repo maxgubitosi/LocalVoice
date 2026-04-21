@@ -34,3 +34,6 @@ Package.resolved
 
 # Environment
 .env
+
+# Claude AI memory (local only)
+memory/

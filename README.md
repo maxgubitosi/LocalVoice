@@ -6,13 +6,15 @@ A macOS menu bar app for local, private voice-to-text. 100% local, no cloud, no 
 
 ## Features
 
-- **Hold hotkey → speak → release** → text appears in any app
-- **Mode 1 — Direct Transcription**: speech → text, inserted instantly
-- **Mode 2 — LLM Rewrite**: speech → Whisper → Ollama → polished text inserted
-- Powered by [WhisperKit](https://github.com/argmaxinc/WhisperKit) (Apple Neural Engine, Apple Silicon optimized)
+- **Hold mode**: hold Right Command (⌘) → speak → release → text appears in any app
+- **Latch mode**: double-tap Right Command → speak → tap again → text appears
+- **Mode 1 — Direct Transcription**: speech → Whisper → inserted instantly
+- **Mode 2 — LLM Rewrite**: speech → Whisper → Ollama (Gemma4) → polished text inserted
+- Powered by [WhisperKit](https://github.com/argmaxinc/WhisperKit) v0.18 (Apple Neural Engine optimized)
 - Local LLM via [Ollama](https://ollama.com) — runs entirely on your Mac
 - Smart text insertion: AXUIElement API (no clipboard pollution) with pasteboard fallback
-- Detects and skips password fields (`AXSecureTextField`)
+- Skips password fields automatically (`AXSecureTextField`)
+- Transcription history with stats and CSV export (⌘H)
 - Animated floating overlay while recording
 
 ## Requirements
@@ -25,7 +27,7 @@ A macOS menu bar app for local, private voice-to-text. 100% local, no cloud, no 
 
 ```bash
 # 1. Clone
-git clone https://github.com/yourusername/LocalVoice.git
+git clone https://github.com/maxgubitosi/LocalVoice.git
 cd LocalVoice
 
 # 2. Build
@@ -41,9 +43,9 @@ swift build -c release
 # Install Ollama
 brew install ollama
 
-# Pull a model (choose based on your hardware)
-ollama pull gemma4:2b   # M1/M2 or <16 GB RAM
-ollama pull gemma4:4b   # M3/M4 or ≥16 GB RAM
+# Pull the recommended model for your hardware
+ollama pull gemma4:e2b   # M1/M2 or <16 GB RAM
+ollama pull gemma4:e4b   # M3/M4 or ≥16 GB RAM
 
 # Start the server
 ollama serve
@@ -57,13 +59,18 @@ On first launch, LocalVoice will request:
 |---|---|
 | **Microphone** | To capture your voice |
 | **Accessibility** | To insert text into other apps via AXUIElement |
-| **Input Monitoring** | To detect the global hotkey (Right Option key) |
+| **Input Monitoring** | To detect the global hotkey |
 
 Go to **System Settings → Privacy & Security** to grant these. The app won't work without Accessibility and Input Monitoring.
 
-## Default Hotkey
+## Hotkey
 
-**Right Option (⌥) key** — hold to record, release to transcribe and insert.
+**Right Command (⌘)** — the default hotkey. Two modes available from the menu bar:
+
+| Mode | Gesture |
+|---|---|
+| **Hold** | Hold to record, release to transcribe |
+| **Latch** | Double-tap to start, single tap to stop |
 
 ## Whisper Models
 

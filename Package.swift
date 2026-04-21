@@ -8,7 +8,7 @@ let package = Package(
         .executable(name: "LocalVoice", targets: ["LocalVoice"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0"),
+        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.18.0"),
     ],
     targets: [
         .executableTarget(
