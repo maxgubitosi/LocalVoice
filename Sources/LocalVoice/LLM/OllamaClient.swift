@@ -13,18 +13,14 @@ final class OllamaClient {
         session = URLSession(configuration: config)
     }
 
-    func rewrite(transcript: String) async throws -> String {
-        let prompt = """
-        You are a voice-to-text assistant. The user dictated the following text:
+    func rewrite(transcript: String, prompt: LLMPrompt, appContext: String?) async throws -> String {
+        var instruction = prompt.instruction
+        if let ctx = appContext {
+            instruction += "\nThe user is dictating into \(ctx). Preserve appropriate terminology and conventions."
+        }
+        instruction += "\n\nUser's dictation: \"\(transcript)\""
 
-        "\(transcript)"
-
-        Rewrite it as a clean, well-formed prompt or message. Fix grammar, punctuation, and structure.
-        Remove filler words ("um", "uh", "like", "you know"). Preserve the user's intent exactly.
-        Return ONLY the rewritten text, no explanations or quotation marks.
-        """
-
-        return try await generate(prompt: prompt)
+        return try await generate(prompt: instruction)
     }
 
     func generate(prompt: String) async throws -> String {
