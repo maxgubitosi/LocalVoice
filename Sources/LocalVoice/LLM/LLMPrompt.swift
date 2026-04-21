@@ -41,7 +41,5 @@ extension LLMPrompt {
         keyNumber: 4
     )
 
-    static var allPresets: [LLMPrompt] {
-        [presetMejorar, presetCorregir, presetPromptear, presetFormalizar]
-    }
+    static let allPresets: [LLMPrompt] = [presetMejorar, presetCorregir, presetPromptear, presetFormalizar]
 }
