@@ -16,7 +16,7 @@ final class AudioCapture {
 
         // Converter from native input format → 16 kHz mono Float32 (WhisperKit requirement)
         guard let converter = AVAudioConverter(from: inputFormat, to: whisperFormat()) else {
-            print("[AudioCapture] Failed to create converter")
+            debugLog("[AudioCapture] Failed to create converter")
             return
         }
 
@@ -27,7 +27,7 @@ final class AudioCapture {
         do {
             try engine.start()
         } catch {
-            print("[AudioCapture] Engine start error: \(error)")
+            debugLog("[AudioCapture] Engine start error: \(error)")
             input.removeTap(onBus: 0)
             isRecording = false
         }
@@ -66,7 +66,7 @@ final class AudioCapture {
         }
 
         if let err = error {
-            print("[AudioCapture] Conversion error: \(err)")
+            debugLog("[AudioCapture] Conversion error: \(err)")
             return
         }
 

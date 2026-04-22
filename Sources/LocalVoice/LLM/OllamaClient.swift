@@ -13,8 +13,14 @@ final class OllamaClient {
         session = URLSession(configuration: config)
     }
 
-    func rewrite(transcript: String, prompt: LLMPrompt, appContext: String?) async throws -> String {
+    func rewrite(transcript: String, prompt: LLMPrompt, appContext: String?, detectedLanguage: String?) async throws -> String {
         var instruction = prompt.instruction
+        if let lang = detectedLanguage,
+           let displayName = Locale.current.localizedString(forLanguageCode: lang) {
+            instruction += "\nRespond in \(displayName). Do NOT translate."
+        } else {
+            instruction += "\nRespond in the same language as the user's dictation. Do NOT translate."
+        }
         if let ctx = appContext {
             instruction += "\nThe user is dictating into \(ctx). Preserve appropriate terminology and conventions."
         }

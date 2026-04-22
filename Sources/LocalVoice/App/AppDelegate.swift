@@ -89,14 +89,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             Task {
                 do {
-                    print("[Pipeline] Audio buffer: \(buffer.count) samples")
+                    debugLog("[Pipeline] Audio buffer: \(buffer.count) samples")
                     let output = try await self.transcriptionEngine.transcribe(
                         buffer: buffer,
                         language: self.appSettings.transcriptionLanguage.whisperCode
                     )
-                    print("[Pipeline] Transcript: '\(output.text)'")
+                    debugLog("[Pipeline] Transcript: '\(output.text)'")
                     guard !output.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                        print("[Pipeline] Empty transcript, skipping")
+                        debugLog("[Pipeline] Empty transcript, skipping")
                         await MainActor.run { self.recordingOverlay.hide() }
                         return
                     }
@@ -114,17 +114,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     if self.appSettings.mode == .llmRewrite {
                         await MainActor.run { self.recordingOverlay.showRefining(transcript: output.text) }
                         let ollamaStart = Date()
+                        // Prefer the user-configured language over Whisper's auto-detection (which can misidentify).
+                        let languageForLLM = self.appSettings.transcriptionLanguage.whisperCode ?? output.language
+                        debugLog("[Pipeline] Language for rewrite: \(languageForLLM ?? "unknown")")
                         finalText = try await self.ollamaClient.rewrite(
                             transcript: output.text,
                             prompt: activePrompt,
-                            appContext: self.recordingTargetApp?.name
+                            appContext: self.recordingTargetApp?.name,
+                            detectedLanguage: languageForLLM
                         )
                         ollamaLatency = Date().timeIntervalSince(ollamaStart)
                     } else {
                         finalText = output.text
                     }
 
-                    print("[Pipeline] Inserting: '\(finalText)'")
+                    debugLog("[Pipeline] Inserting: '\(finalText)'")
                     let startTime = self.recordingStartTime
                     let targetApp = self.recordingTargetApp
                     let mode = self.appSettings.mode
@@ -158,7 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self.modelContainer.mainContext.insert(record)
                     }
                 } catch {
-                    print("[Pipeline] Error: \(error)")
+                    debugLog("[Pipeline] Error: \(error)")
                     await MainActor.run { self.recordingOverlay.showError(error.localizedDescription) }
                 }
             }

@@ -11,13 +11,13 @@ final class TranscriptionEngine {
         do {
             let modelDir = try modelDirectory()
             if !modelAlreadyDownloaded(model, in: modelDir) {
-                print("[TranscriptionEngine] Downloading '\(name)' for the first time — this may take a minute...")
+                debugLog("[TranscriptionEngine] Downloading '\(name)' for the first time — this may take a minute...")
             }
-            print("[TranscriptionEngine] Loading model '\(name)'...")
+            debugLog("[TranscriptionEngine] Loading model '\(name)'...")
             whisper = try await WhisperKit(model: model, downloadBase: modelDir)
-            print("[TranscriptionEngine] Ready.")
+            debugLog("[TranscriptionEngine] Ready.")
         } catch {
-            print("[TranscriptionEngine] Failed to load model '\(name)': \(error)")
+            debugLog("[TranscriptionEngine] Failed to load model '\(name)': \(error)")
         }
     }
 

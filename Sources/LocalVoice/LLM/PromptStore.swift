@@ -25,7 +25,7 @@ final class PromptStore {
     }
 
     func activePrompt(id: UUID?) -> LLMPrompt {
-        prompts.first { $0.id == id } ?? LLMPrompt.presetMejorar
+        prompts.first { $0.id == id } ?? LLMPrompt.presetImprove
     }
 
     func add(_ prompt: LLMPrompt) {

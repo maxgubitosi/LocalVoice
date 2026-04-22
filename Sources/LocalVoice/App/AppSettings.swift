@@ -2,7 +2,7 @@ import Foundation
 
 enum AppMode: String, Codable, CaseIterable {
     case directTranscription = "Direct Transcription"
-    case llmRewrite = "LLM Rewrite"
+    case llmRewrite = "Refine"
 }
 
 enum TranscriptionLanguage: String, Codable, CaseIterable {
@@ -49,7 +49,8 @@ final class AppSettings: ObservableObject {
 
     init() {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
-        self.mode = AppMode(rawValue: rawMode) ?? .directTranscription
+        let migratedMode = rawMode == "LLM Rewrite" ? "Refine" : rawMode
+        self.mode = AppMode(rawValue: migratedMode) ?? .directTranscription
         self.ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? DeviceCapability.recommendedGemmaModel
         let savedModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "openai_whisper-large-v3_turbo"
         self.whisperModel = AppSettings.modelMigrations[savedModel] ?? savedModel

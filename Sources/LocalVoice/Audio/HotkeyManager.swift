@@ -34,7 +34,7 @@ final class HotkeyManager {
     private var doubleTapTimer: Timer?
 
     private let holdThreshold: TimeInterval = 0.25   // shorter = tap, longer = hold
-    private let doubleTapWindow: TimeInterval = 0.30  // max gap between the two taps
+    private let doubleTapWindow: TimeInterval = 0.50  // max gap between the two taps
 
     init() { setupEventTap() }
     deinit { teardown() }
@@ -60,7 +60,7 @@ final class HotkeyManager {
         )
 
         guard let tap else {
-            print("[HotkeyManager] Failed to create event tap. Check Input Monitoring permission.")
+            debugLog("[HotkeyManager] Failed to create event tap. Check Input Monitoring permission.")
             return
         }
 

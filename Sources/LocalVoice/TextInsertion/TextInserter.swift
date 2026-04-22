@@ -29,14 +29,14 @@ final class TextInserter {
     func insert(text: String) {
         guard !text.isEmpty else { return }
 
-        print("[TextInserter] AX trusted: \(AXIsProcessTrusted())")
+        debugLog("[TextInserter] AX trusted: \(AXIsProcessTrusted())")
         if tryAccessibilityInsert(text: text) {
-            print("[TextInserter] Inserted via AX")
+            debugLog("[TextInserter] Inserted via AX")
             capturedElement = nil
             capturedApp = nil
             return
         }
-        print("[TextInserter] AX failed, falling back to pasteboard")
+        debugLog("[TextInserter] AX failed, falling back to pasteboard")
         let targetApp = capturedApp
         capturedElement = nil
         capturedApp = nil
@@ -50,11 +50,11 @@ final class TextInserter {
 
         guard let focusedElement = capturedElement ?? focusedAXElement() else { return false }
         guard !isSecureTextField(focusedElement) else {
-            print("[TextInserter] Skipping secure text field")
+            debugLog("[TextInserter] Skipping secure text field")
             return false
         }
         guard isNativeTextField(focusedElement) else {
-            print("[TextInserter] Non-native field (Electron/web), using pasteboard")
+            debugLog("[TextInserter] Non-native field (Electron/web), using pasteboard")
             return false
         }
 
@@ -92,7 +92,7 @@ final class TextInserter {
                 guard AXUIElementCopyAttributeValue(
                     focusedElement, kAXValueAttribute as CFString, &verifyRef
                 ) == .success, (verifyRef as? String) == newValue else {
-                    print("[TextInserter] AX write unverified (Electron false-success), using pasteboard")
+                    debugLog("[TextInserter] AX write unverified (Electron false-success), using pasteboard")
                     return false
                 }
 
