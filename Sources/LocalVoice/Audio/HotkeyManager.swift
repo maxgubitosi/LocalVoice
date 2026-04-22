@@ -5,8 +5,9 @@ import AppKit
 /// - Hold: press and hold to record, release to transcribe.
 /// - Latch: double-tap to start recording hands-free, tap again to stop and transcribe.
 final class HotkeyManager {
-    var onHotkeyDown: (() -> Void)?
-    var onHotkeyUp:   (() -> Void)?
+    var onHotkeyDown:   (() -> Void)?
+    var onHotkeyUp:     (() -> Void)?
+    var onHotkeyCancel: (() -> Void)?
     var onPromptKeyPressed: ((Int) -> Void)?
 
     private static let digitKeyCodes: [CGKeyCode: Int] = [
@@ -147,9 +148,8 @@ final class HotkeyManager {
                 state = .waitingDoubleTap
                 doubleTapTimer = Timer.scheduledTimer(withTimeInterval: doubleTapWindow, repeats: false) { [weak self] _ in
                     guard let self, self.state == .waitingDoubleTap else { return }
-                    // No second tap arrived — treat as a short hold: stop and transcribe
                     self.state = .idle
-                    self.onHotkeyUp?()
+                    self.onHotkeyCancel?()
                 }
             } else {
                 // Long hold released — stop and transcribe

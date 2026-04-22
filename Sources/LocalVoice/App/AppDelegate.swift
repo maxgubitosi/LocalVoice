@@ -41,10 +41,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.onHotkeyDown = { [weak self] in
             // captureTarget() hace IPC vía AX — no llamarla desde el tap callback directamente
             // para no bloquear el run loop y que macOS no deshabilite el tap.
-            DispatchQueue.main.async { self?.textInserter.captureTarget() }
+            DispatchQueue.main.async {
+                self?.textInserter.captureTarget()
+                if let ctx = self?.textInserter.captureContext() {
+                    debugLog("[TextInserter] Target: \(ctx.appName ?? "unknown") (\(ctx.bundleID ?? "?")) — role: \(ctx.axRole ?? "none"), native: \(ctx.isNativeField)")
+                }
+            }
             self?.startRecording()
         }
-        hotkeyManager.onHotkeyUp   = { [weak self] in self?.stopAndProcess() }
+        hotkeyManager.onHotkeyUp     = { [weak self] in self?.stopAndProcess() }
+        hotkeyManager.onHotkeyCancel = { [weak self] in self?.cancelRecording() }
         hotkeyManager.onPromptKeyPressed = { [weak self] n in self?.sessionPromptKeyNumber = n }
 
         Task { await transcriptionEngine.loadModel(named: appSettings.whisperModel) }
@@ -63,6 +69,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Accessibility — prompt if not already granted
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true]
         AXIsProcessTrustedWithOptions(options)
+    }
+
+    private func cancelRecording() {
+        audioCapture.stopRecording { _ in }
+        DispatchQueue.main.async { self.recordingOverlay.hide() }
     }
 
     private func startRecording() {
@@ -94,6 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         buffer: buffer,
                         language: self.appSettings.transcriptionLanguage.whisperCode
                     )
+                    debugLog("[Pipeline] Detected language: \(output.language ?? "unknown")")
                     debugLog("[Pipeline] Transcript: '\(output.text)'")
                     guard !output.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                         debugLog("[Pipeline] Empty transcript, skipping")
