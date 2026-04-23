@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 final class PromptStore {
     private(set) var prompts: [LLMPrompt]
@@ -46,11 +47,15 @@ final class PromptStore {
     }
 
     private func save() {
-        guard let data = try? JSONEncoder().encode(prompts) else { return }
-        try? FileManager.default.createDirectory(
-            at: fileURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try? data.write(to: fileURL, options: .atomic)
+        do {
+            let data = try JSONEncoder().encode(prompts)
+            try FileManager.default.createDirectory(
+                at: fileURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            Logger.persistence.error("Failed to save prompts to disk: \(error)")
+        }
     }
 }
