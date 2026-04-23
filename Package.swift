@@ -16,7 +16,16 @@ let package = Package(
             dependencies: [
                 .product(name: "WhisperKit", package: "WhisperKit"),
             ],
-            path: "Sources/LocalVoice"
+            path: "Sources/LocalVoice",
+            exclude: ["Info.plist"],
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Sources/LocalVoice/Info.plist",
+                ])
+            ]
         ),
     ]
 )

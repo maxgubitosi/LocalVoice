@@ -15,10 +15,14 @@ Sin cloud, sin suscripción. Todo el procesamiento corre localmente en el Mac.
 ## Cómo buildear
 
 ```bash
-swift build                    # debug
-swift build -c release         # release
-.build/release/LocalVoice      # correr
+make build                     # release + re-firma el binario (requerido)
+make run                       # build + ejecutar
+.build/release/LocalVoice      # ejecutar sin re-buildear
 ```
+
+El paso `codesign --force --sign -` después del link es obligatorio: sin él macOS 26 no
+reconoce el bundle ID embebido (`com.localvoice.app`) y el NSStatusItem no aparece.
+Usar siempre `make build` en lugar de `swift build -c release` solo.
 
 Requiere CLT o Xcode instalado. macOS 14+ (Sonoma). Apple Silicon recomendado.
 

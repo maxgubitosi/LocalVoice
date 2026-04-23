@@ -90,10 +90,13 @@ final class AudioCapture {
 
         guard let channelData = output.floatChannelData else { return }
         let frameCount = Int(output.frameLength)
+        // Copy while output is still in scope — channelData[0] is a raw pointer into output's
+        // buffer and becomes a dangling pointer once output is released by ARC.
+        let floatData = Array(UnsafeBufferPointer(start: channelData[0], count: frameCount))
         // queue.async serializes sample writes against stopRecording's queue.sync read.
         // engine.stop() flushes pending callbacks before returning, so no samples are lost.
         queue.async { [weak self] in
-            self?.samples.append(contentsOf: Array(UnsafeBufferPointer(start: channelData[0], count: frameCount)))
+            self?.samples.append(contentsOf: floatData)
         }
     }
 
