@@ -1,204 +1,156 @@
 import AppKit
 import ApplicationServices
+import OSLog
+
+struct InsertionContext {
+    let appName: String?
+    let bundleID: String?
+    let axRole: String?
+    let isNativeField: Bool
+}
 
 /// Two-tier text insertion:
-///   Tier 1 — AXUIElement (Accessibility API): precise, no clipboard pollution
+///   Tier 1 — kAXSelectedTextAttribute: inserts at cursor without reading existing content
 ///   Tier 2 — NSPasteboard + Cmd+V: universal fallback
 final class TextInserter {
     private var capturedElement: AXUIElement?
     private var capturedApp: AXUIElement?
+    private var capturedIsSecure: Bool = false
 
-    // Call this on hotkeyDown, before recording starts, to lock in the target element
+    // Call on hotkeyDown to lock in the target before focus shifts.
     func captureTarget() {
+        capturedElement = nil
+        capturedApp = nil
+        capturedIsSecure = false
+
         let systemWide = AXUIElementCreateSystemWide()
-        var focusedApp: AnyObject?
+        var appRef: AnyObject?
         guard AXUIElementCopyAttributeValue(
-            systemWide, kAXFocusedApplicationAttribute as CFString, &focusedApp
-        ) == .success, let app = focusedApp else { return }
+            systemWide, kAXFocusedApplicationAttribute as CFString, &appRef
+        ) == .success, let appRef else { return }
 
-        capturedApp = (app as! AXUIElement)
+        let app = appRef as! AXUIElement
+        capturedApp = app
 
-        var focusedElement: AnyObject?
+        var elementRef: AnyObject?
         guard AXUIElementCopyAttributeValue(
-            app as! AXUIElement, kAXFocusedUIElementAttribute as CFString, &focusedElement
-        ) == .success else { return }
+            app, kAXFocusedUIElementAttribute as CFString, &elementRef
+        ) == .success, let elementRef else { return }
 
-        capturedElement = (focusedElement as! AXUIElement)
+        let element = elementRef as! AXUIElement
+        capturedElement = element
+        capturedIsSecure = axRole(element) == "AXSecureTextField"
+    }
+
+    // Returns AX-level context for debug logging. Does not affect insertion.
+    func captureContext() -> InsertionContext {
+        let front = NSWorkspace.shared.frontmostApplication
+        let role = capturedElement.flatMap { axRole($0) }
+        let nativeRoles: Set<String> = ["AXTextField", "AXTextArea", "AXSearchField", "AXComboBox"]
+        return InsertionContext(
+            appName: front?.localizedName,
+            bundleID: front?.bundleIdentifier,
+            axRole: role,
+            isNativeField: role.map { nativeRoles.contains($0) } ?? false
+        )
     }
 
     func insert(text: String) {
         guard !text.isEmpty else { return }
 
-        debugLog("[TextInserter] AX trusted: \(AXIsProcessTrusted())")
-        if tryAccessibilityInsert(text: text) {
-            debugLog("[TextInserter] Inserted via AX")
-            capturedElement = nil
-            capturedApp = nil
+        if capturedIsSecure {
+            Logger.textInserter.info("Secure text field — insert blocked")
+            reset()
             return
         }
-        debugLog("[TextInserter] AX failed, falling back to pasteboard")
-        let targetApp = capturedApp
-        capturedElement = nil
-        capturedApp = nil
-        pasteboardInsert(text: text, targetApp: targetApp)
-    }
 
-    // MARK: - Tier 1: Accessibility API
+        let element = capturedElement
+        let app = capturedApp
+        reset()
 
-    private func tryAccessibilityInsert(text: String) -> Bool {
-        guard AXIsProcessTrusted() else { return false }
-
-        guard let focusedElement = capturedElement ?? focusedAXElement() else { return false }
-        guard !isSecureTextField(focusedElement) else {
-            debugLog("[TextInserter] Skipping secure text field")
-            return false
-        }
-        guard isNativeTextField(focusedElement) else {
-            debugLog("[TextInserter] Non-native field (Electron/web), using pasteboard")
-            return false
-        }
-
-        // Get current value
-        var currentValueRef: AnyObject?
-        let getResult = AXUIElementCopyAttributeValue(
-            focusedElement, kAXValueAttribute as CFString, &currentValueRef
-        )
-
-        if getResult == .success, let current = currentValueRef as? String {
-            // Append at insertion point
-            var selectedRangeValue: AnyObject?
-            AXUIElementCopyAttributeValue(
-                focusedElement, kAXSelectedTextRangeAttribute as CFString, &selectedRangeValue
+        if AXIsProcessTrusted(), let el = element {
+            Logger.textInserter.debug("Attempting AX insert…")
+            let result = AXUIElementSetAttributeValue(
+                el, kAXSelectedTextAttribute as CFString, text as CFTypeRef
             )
-
-            var range = CFRange(location: current.count, length: 0)
-            if let rangeValue = selectedRangeValue,
-               CFGetTypeID(rangeValue) == AXValueGetTypeID(),
-               let axValue = rangeValue as! AXValue? {
-                AXValueGetValue(axValue, .cfRange, &range)
-            }
-
-            let nsString = current as NSString
-            let prefix = nsString.substring(to: min(range.location, nsString.length))
-            let suffix = nsString.substring(from: min(range.location + range.length, nsString.length))
-            let newValue = prefix + text + suffix
-
-            let setResult = AXUIElementSetAttributeValue(
-                focusedElement, kAXValueAttribute as CFString, newValue as CFTypeRef
-            )
-            if setResult == .success {
-                // Verify the write actually took effect (Chromium/Electron reports false success)
+            if result == .success {
+                // Some apps (Electron/Chromium) report success but don't actually update the field.
+                // Read back the value to confirm the text landed.
                 var verifyRef: AnyObject?
-                guard AXUIElementCopyAttributeValue(
-                    focusedElement, kAXValueAttribute as CFString, &verifyRef
-                ) == .success, (verifyRef as? String) == newValue else {
-                    debugLog("[TextInserter] AX write unverified (Electron false-success), using pasteboard")
-                    return false
+                if AXUIElementCopyAttributeValue(el, kAXValueAttribute as CFString, &verifyRef) == .success,
+                   let verifiedValue = verifyRef as? String,
+                   verifiedValue.contains(text) {
+                    Logger.textInserter.debug("AX insert verified")
+                    return
                 }
-
-                let newPos = range.location + text.count
-                var cfRange = CFRange(location: newPos, length: 0)
-                if let newRange = AXValueCreate(.cfRange, &cfRange) {
-                    AXUIElementSetAttributeValue(
-                        focusedElement, kAXSelectedTextRangeAttribute as CFString, newRange
-                    )
-                }
-                return true
+                Logger.textInserter.warning("AX reported success but text not found in field — falling back to pasteboard")
+            } else {
+                Logger.textInserter.warning("AX insert failed (error: \(result.rawValue)) — falling back to pasteboard")
             }
+        } else {
+            Logger.textInserter.debug("AX not available — using pasteboard")
         }
 
-        // Fields that don't expose kAXValueAttribute may support kAXSelectedTextAttribute
-        let insertResult = AXUIElementSetAttributeValue(
-            focusedElement, kAXSelectedTextAttribute as CFString, text as CFTypeRef
-        )
-        if insertResult != .success { return false }
-
-        // Verify via value read-back; if unverifiable, fall through to pasteboard
-        var verifyRef: AnyObject?
-        if AXUIElementCopyAttributeValue(focusedElement, kAXValueAttribute as CFString, &verifyRef) == .success,
-           let verifiedValue = verifyRef as? String {
-            return verifiedValue.contains(text)
-        }
-        return false
+        pasteboardInsert(text: text, targetApp: app)
     }
 
-    private func focusedAXElement() -> AXUIElement? {
-        let systemWide = AXUIElementCreateSystemWide()
-        var focusedApp: AnyObject?
-        guard AXUIElementCopyAttributeValue(
-            systemWide, kAXFocusedApplicationAttribute as CFString, &focusedApp
-        ) == .success else { return nil }
+    // MARK: - Tier 2: Pasteboard + Cmd+V
 
-        guard let app = focusedApp else { return nil }
-        var focusedElement: AnyObject?
-        guard AXUIElementCopyAttributeValue(
-            app as! AXUIElement, kAXFocusedUIElementAttribute as CFString, &focusedElement
-        ) == .success else { return nil }
-
-        return (focusedElement as! AXUIElement)
-    }
-
-    private func axRole(_ element: AXUIElement) -> String? {
-        var roleRef: AnyObject?
-        guard AXUIElementCopyAttributeValue(
-            element, kAXRoleAttribute as CFString, &roleRef
-        ) == .success else { return nil }
-        return roleRef as? String
-    }
-
-    private func isSecureTextField(_ element: AXUIElement) -> Bool {
-        axRole(element) == "AXSecureTextField"
-    }
-
-    private func isNativeTextField(_ element: AXUIElement) -> Bool {
-        guard let role = axRole(element) else { return false }
-        return role == "AXTextField" || role == "AXTextArea"
-            || role == "AXSearchField" || role == "AXComboBox"
-    }
-
-    // MARK: - Tier 2: Clipboard + Cmd+V
-
-    private func pasteboardInsert(text: String, targetApp: AXUIElement? = nil) {
+    private func pasteboardInsert(text: String, targetApp: AXUIElement?) {
         let pasteboard = NSPasteboard.general
-        let previousContents = pasteboard.pasteboardItems?.compactMap { item -> (String, NSData)? in
-            guard let type = item.types.first,
-                  let data = item.data(forType: type) else { return nil }
-            return (type.rawValue, data as NSData)
-        }
+        let previousContents: [(String, Data)] = pasteboard.pasteboardItems?.compactMap { item in
+            guard let type = item.types.first, let data = item.data(forType: type) else { return nil }
+            return (type.rawValue, data)
+        } ?? []
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        // Activate the target app so Cmd+V lands in the right place
         var activationDelay = 0.0
         if let targetApp {
             var pid: pid_t = 0
             if AXUIElementGetPid(targetApp, &pid) == .success,
-               let app = NSRunningApplication(processIdentifier: pid) {
-                app.activate(options: [])
+               let runningApp = NSRunningApplication(processIdentifier: pid) {
+                Logger.textInserter.debug("Pasteboard: activating \(runningApp.localizedName ?? "app"), sending Cmd+V")
+                runningApp.activate(options: [])
                 activationDelay = 0.15
             }
+        } else {
+            Logger.textInserter.debug("Pasteboard: no target app captured — sending Cmd+V")
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + activationDelay) {
             let source = CGEventSource(stateID: .hidSystemState)
-            let vKeyCode: CGKeyCode = 0x09
-            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true)
-            let keyUp   = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
-            keyDown?.flags = .maskCommand
-            keyUp?.flags   = .maskCommand
-            keyDown?.post(tap: .cghidEventTap)
-            keyUp?.post(tap: .cghidEventTap)
+            let vKey: CGKeyCode = 0x09
+            let down = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true)
+            let up   = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false)
+            down?.flags = .maskCommand
+            up?.flags   = .maskCommand
+            down?.post(tap: .cghidEventTap)
+            up?.post(tap: .cghidEventTap)
 
-            // Restore original clipboard after a short delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                if let previous = previousContents, !previous.isEmpty {
-                    pasteboard.clearContents()
-                    for (typeString, data) in previous {
-                        pasteboard.setData(data as Data, forType: NSPasteboard.PasteboardType(typeString))
-                    }
+                guard !previousContents.isEmpty else { return }
+                pasteboard.clearContents()
+                for (typeString, data) in previousContents {
+                    pasteboard.setData(data, forType: NSPasteboard.PasteboardType(typeString))
                 }
+                Logger.textInserter.debug("Clipboard restored")
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    private func reset() {
+        capturedElement = nil
+        capturedApp = nil
+        capturedIsSecure = false
+    }
+
+    private func axRole(_ element: AXUIElement) -> String? {
+        var ref: AnyObject?
+        guard AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &ref) == .success else { return nil }
+        return ref as? String
     }
 }

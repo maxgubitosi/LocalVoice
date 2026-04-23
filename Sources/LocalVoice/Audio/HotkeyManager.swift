@@ -1,5 +1,6 @@
 import Carbon
 import AppKit
+import OSLog
 
 /// Monitors Right Command via CGEventTap. Two recording modes:
 /// - Hold: press and hold to record, release to transcribe.
@@ -61,7 +62,7 @@ final class HotkeyManager {
         )
 
         guard let tap else {
-            debugLog("[HotkeyManager] Failed to create event tap. Check Input Monitoring permission.")
+            Logger.hotkey.error("Failed to create event tap — check Input Monitoring permission")
             return
         }
 

@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import Combine
+import OSLog
 import SwiftData
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -44,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 self?.textInserter.captureTarget()
                 if let ctx = self?.textInserter.captureContext() {
-                    debugLog("[TextInserter] Target: \(ctx.appName ?? "unknown") (\(ctx.bundleID ?? "?")) — role: \(ctx.axRole ?? "none"), native: \(ctx.isNativeField)")
+                    Logger.textInserter.debug("Target: \(ctx.appName ?? "unknown") (\(ctx.bundleID ?? "?")) — role: \(ctx.axRole ?? "none"), native: \(ctx.isNativeField)")
                 }
             }
             self?.startRecording()
@@ -100,15 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             Task {
                 do {
-                    debugLog("[Pipeline] Audio buffer: \(buffer.count) samples")
+                    Logger.pipeline.debug("Audio buffer: \(buffer.count) samples")
                     let output = try await self.transcriptionEngine.transcribe(
                         buffer: buffer,
                         language: self.appSettings.transcriptionLanguage.whisperCode
                     )
-                    debugLog("[Pipeline] Detected language: \(output.language ?? "unknown")")
-                    debugLog("[Pipeline] Transcript: '\(output.text)'")
+                    Logger.pipeline.debug("Detected language: \(output.language ?? "unknown")")
+                    Logger.pipeline.debug("Transcript: '\(output.text)'")
                     guard !output.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                        debugLog("[Pipeline] Empty transcript, skipping")
+                        Logger.pipeline.info("Empty transcript — skipping")
                         await MainActor.run { self.recordingOverlay.hide() }
                         return
                     }
@@ -128,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         let ollamaStart = Date()
                         // Prefer the user-configured language over Whisper's auto-detection (which can misidentify).
                         let languageForLLM = self.appSettings.transcriptionLanguage.whisperCode ?? output.language
-                        debugLog("[Pipeline] Language for rewrite: \(languageForLLM ?? "unknown")")
+                        Logger.pipeline.debug("Language for rewrite: \(languageForLLM ?? "unknown")")
                         finalText = try await self.ollamaClient.rewrite(
                             transcript: output.text,
                             prompt: activePrompt,
@@ -140,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         finalText = output.text
                     }
 
-                    debugLog("[Pipeline] Inserting: '\(finalText)'")
+                    Logger.pipeline.debug("Inserting: '\(finalText)'")
                     let startTime = self.recordingStartTime
                     let targetApp = self.recordingTargetApp
                     let mode = self.appSettings.mode
@@ -174,7 +175,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self.modelContainer.mainContext.insert(record)
                     }
                 } catch {
-                    debugLog("[Pipeline] Error: \(error)")
+                    Logger.pipeline.error("Pipeline error: \(error)")
                     await MainActor.run { self.recordingOverlay.showError(error.localizedDescription) }
                 }
             }

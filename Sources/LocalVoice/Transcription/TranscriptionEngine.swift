@@ -1,5 +1,6 @@
 import WhisperKit
 import Foundation
+import OSLog
 
 final class TranscriptionEngine {
     private var whisper: WhisperKit?
@@ -11,13 +12,13 @@ final class TranscriptionEngine {
         do {
             let modelDir = try modelDirectory()
             if !modelAlreadyDownloaded(model, in: modelDir) {
-                debugLog("[TranscriptionEngine] Downloading '\(name)' for the first time — this may take a minute...")
+                Logger.transcription.info("Downloading '\(name)' for the first time — this may take a minute…")
             }
-            debugLog("[TranscriptionEngine] Loading model '\(name)'...")
+            Logger.transcription.info("Loading model '\(name)'…")
             whisper = try await WhisperKit(model: model, downloadBase: modelDir)
-            debugLog("[TranscriptionEngine] Ready.")
+            Logger.transcription.info("Ready.")
         } catch {
-            debugLog("[TranscriptionEngine] Failed to load model '\(name)': \(error)")
+            Logger.transcription.error("Failed to load model '\(name)': \(error)")
         }
     }
 

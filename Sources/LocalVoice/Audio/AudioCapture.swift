@@ -1,4 +1,5 @@
 import AVFoundation
+import OSLog
 
 final class AudioCapture {
     private let engine = AVAudioEngine()
@@ -16,7 +17,7 @@ final class AudioCapture {
 
         // Converter from native input format → 16 kHz mono Float32 (WhisperKit requirement)
         guard let converter = AVAudioConverter(from: inputFormat, to: whisperFormat()) else {
-            debugLog("[AudioCapture] Failed to create converter")
+            Logger.audio.error("Failed to create converter")
             return
         }
 
@@ -27,7 +28,7 @@ final class AudioCapture {
         do {
             try engine.start()
         } catch {
-            debugLog("[AudioCapture] Engine start error: \(error)")
+            Logger.audio.error("Engine start error: \(error)")
             input.removeTap(onBus: 0)
             isRecording = false
         }
@@ -66,7 +67,7 @@ final class AudioCapture {
         }
 
         if let err = error {
-            debugLog("[AudioCapture] Conversion error: \(err)")
+            Logger.audio.error("Conversion error: \(err)")
             return
         }
 
