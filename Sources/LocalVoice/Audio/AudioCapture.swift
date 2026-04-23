@@ -6,18 +6,25 @@ final class AudioCapture {
     private var samples: [Float] = []
     private var isRecording = false
     private let targetSampleRate: Double = 16000
+    // Serializes access to `samples` and `isRecording` across the audio thread and main thread.
+    private let queue = DispatchQueue(label: "com.localvoice.audiocapture")
 
     func startRecording() {
-        guard !isRecording else { return }
-        samples = []
-        isRecording = true
+        var shouldProceed = false
+        queue.sync {
+            guard !isRecording else { return }
+            samples = []
+            isRecording = true
+            shouldProceed = true
+        }
+        guard shouldProceed else { return }
 
         let input = engine.inputNode
         let inputFormat = input.outputFormat(forBus: 0)
 
-        // Converter from native input format → 16 kHz mono Float32 (WhisperKit requirement)
         guard let converter = AVAudioConverter(from: inputFormat, to: whisperFormat()) else {
-            Logger.audio.error("Failed to create converter")
+            Logger.audio.error("Failed to create audio converter")
+            queue.sync { isRecording = false }
             return
         }
 
@@ -30,17 +37,27 @@ final class AudioCapture {
         } catch {
             Logger.audio.error("Engine start error: \(error)")
             input.removeTap(onBus: 0)
-            isRecording = false
+            queue.sync { isRecording = false }
         }
     }
 
     func stopRecording(completion: @escaping ([Float]?) -> Void) {
-        guard isRecording else { completion(nil); return }
-        isRecording = false
+        var captured: [Float]? = nil
+        var wasRecording = false
+        queue.sync {
+            wasRecording = isRecording
+            if isRecording {
+                isRecording = false
+                captured = samples.isEmpty ? nil : samples
+            }
+        }
+        guard wasRecording else {
+            completion(nil)
+            return
+        }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
-        let captured = samples
-        completion(captured.isEmpty ? nil : captured)
+        completion(captured)
     }
 
     // MARK: - Private
@@ -73,7 +90,11 @@ final class AudioCapture {
 
         guard let channelData = output.floatChannelData else { return }
         let frameCount = Int(output.frameLength)
-        samples.append(contentsOf: Array(UnsafeBufferPointer(start: channelData[0], count: frameCount)))
+        // queue.async serializes sample writes against stopRecording's queue.sync read.
+        // engine.stop() flushes pending callbacks before returning, so no samples are lost.
+        queue.async { [weak self] in
+            self?.samples.append(contentsOf: Array(UnsafeBufferPointer(start: channelData[0], count: frameCount)))
+        }
     }
 
     private func whisperFormat() -> AVAudioFormat {
