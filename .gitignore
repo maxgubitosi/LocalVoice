@@ -44,3 +44,6 @@ Benchmark/outputs/
 
 # Ignore all .m4a files
 *.m4a
+
+# Git worktrees
+.worktrees/
