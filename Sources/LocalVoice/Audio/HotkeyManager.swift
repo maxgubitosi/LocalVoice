@@ -85,8 +85,15 @@ final class HotkeyManager {
         }
 
         if type == .keyDown {
+            let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+
+            if keyCode == 0x35 && state == .latched {
+                state = .idle
+                DispatchQueue.main.async { self.onHotkeyCancel?() }
+                return nil
+            }
+
             if state == .held || state == .latched {
-                let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
                 if let digit = Self.digitKeyCodes[keyCode] {
                     DispatchQueue.main.async { self.onPromptKeyPressed?(digit) }
                     return nil

@@ -6,7 +6,8 @@ enum AppMode: String, Codable, CaseIterable {
 }
 
 enum TranscriptionLanguage: String, Codable, CaseIterable {
-    case auto = "Auto"
+    case auto    = "Auto"
+    case system  = "System"
     case english = "English"
     case spanish = "Spanish"
 
@@ -15,6 +16,25 @@ enum TranscriptionLanguage: String, Codable, CaseIterable {
         case .auto:    return nil
         case .english: return "en"
         case .spanish: return "es"
+        case .system:
+            let tag = Locale.preferredLanguages.first ?? ""
+            let code = Locale.Language(identifier: tag).languageCode?.identifier ?? ""
+            return code.isEmpty ? nil : code
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .auto:    return "Auto"
+        case .english: return "English"
+        case .spanish: return "Spanish"
+        case .system:
+            let tag = Locale.preferredLanguages.first ?? ""
+            let code = Locale.Language(identifier: tag).languageCode?.identifier ?? ""
+            if let name = code.isEmpty ? nil : Locale.current.localizedString(forLanguageCode: code) {
+                return "System (\(name))"
+            }
+            return "System"
         }
     }
 }
@@ -58,7 +78,7 @@ final class AppSettings: ObservableObject {
         // Default is Right Command (0x36 = 54). Value 63 was an old non-functional default — treat as unset.
         self.hotkeyKeyCode = (saved > 0 && saved != 63) ? UInt16(saved) : 54
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
-        self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .auto
+        self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .system
         self.saveTranscribedText = UserDefaults.standard.bool(forKey: "saveTranscribedText")
         let savedPromptID = UserDefaults.standard.string(forKey: "activePromptID")
         self.activePromptID = savedPromptID.flatMap { UUID(uuidString: $0) }

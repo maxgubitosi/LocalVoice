@@ -60,6 +60,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.onHotkeyCancel = { [weak self] in self?.cancelRecording() }
         hotkeyManager.onPromptKeyPressed = { [weak self] n in self?.sessionPromptKeyNumber = n }
 
+        transcriptionEngine.$isModelLoaded
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] loaded in
+                self?.menuBarManager.setLoading(!loaded)
+            }
+            .store(in: &cancellables)
+
         Task { await transcriptionEngine.loadModel(named: appSettings.whisperModel) }
 
         appSettings.$whisperModel
@@ -91,6 +98,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startRecording() {
+        guard transcriptionEngine.isModelLoaded else {
+            recordingOverlay.showError("Loading model, please wait…")
+            return
+        }
         currentPipelineTask?.cancel()
         currentPipelineTask = nil
         recordingStartTime = Date()

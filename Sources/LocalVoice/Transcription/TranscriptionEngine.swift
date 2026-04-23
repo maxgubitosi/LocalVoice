@@ -1,12 +1,18 @@
 import WhisperKit
 import Foundation
 import OSLog
+import Combine
 
-final class TranscriptionEngine {
+final class TranscriptionEngine: ObservableObject {
+    @Published private(set) var isModelLoaded: Bool = false
     private var whisper: WhisperKit?
     private var currentModel: String = "base"
 
     func loadModel(named model: String = "openai_whisper-large-v3_turbo") async {
+        await MainActor.run {
+            isModelLoaded = false
+            whisper = nil
+        }
         currentModel = model
         let name = TranscriptionEngine.displayName(for: model)
         do {
@@ -15,7 +21,11 @@ final class TranscriptionEngine {
                 Logger.transcription.info("Downloading '\(name)' for the first time — this may take a minute…")
             }
             Logger.transcription.info("Loading model '\(name)'…")
-            whisper = try await WhisperKit(model: model, downloadBase: modelDir)
+            let loaded = try await WhisperKit(model: model, downloadBase: modelDir)
+            await MainActor.run {
+                whisper = loaded
+                isModelLoaded = true
+            }
             Logger.transcription.info("Ready.")
         } catch {
             Logger.transcription.error("Failed to load model '\(name)': \(error)")

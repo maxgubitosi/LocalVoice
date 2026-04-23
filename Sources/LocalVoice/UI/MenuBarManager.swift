@@ -34,6 +34,12 @@ final class MenuBarManager: NSObject {
         statusButton?.image?.isTemplate = true
     }
 
+    func setLoading(_ loading: Bool) {
+        DispatchQueue.main.async {
+            self.statusButton?.appearsDisabled = loading
+        }
+    }
+
     func setRecording(_ recording: Bool) {
         DispatchQueue.main.async {
             let symbolName = recording ? "waveform.circle.fill" : "waveform.circle"
@@ -73,7 +79,7 @@ final class MenuBarManager: NSObject {
         let langSubmenu = NSMenu()
         for language in TranscriptionLanguage.allCases {
             let item = NSMenuItem(
-                title: language.rawValue,
+                title: language.displayName,
                 action: #selector(languageSelected(_:)),
                 keyEquivalent: ""
             )

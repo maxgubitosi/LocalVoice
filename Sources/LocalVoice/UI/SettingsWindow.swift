@@ -4,7 +4,7 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     convenience init(settings: AppSettings, promptStore: PromptStore) {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 400, height: 520),
+            contentRect: CGRect(x: 0, y: 0, width: 400, height: 560),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -43,10 +43,13 @@ struct SettingsView: View {
 
                 Picker("Language", selection: $settings.transcriptionLanguage) {
                     ForEach(TranscriptionLanguage.allCases, id: \.self) { lang in
-                        Text(lang.rawValue).tag(lang)
+                        Text(lang.displayName).tag(lang)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+                Text("System uses your macOS language. Auto may default to English for short clips.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Ollama (LLM Rewrite Mode)") {
@@ -76,6 +79,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .frame(width: 400, height: 520)
+        .frame(minWidth: 400)
     }
 }
