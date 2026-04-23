@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var recordingTargetApp: (bundleID: String, name: String)? = nil
     private var promptStore: PromptStore!
     private var sessionPromptKeyNumber: Int? = nil
+    private var currentPipelineTask: Task<Void, Never>?
 
     var appSettings = AppSettings()
 
@@ -82,6 +83,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startRecording() {
+        currentPipelineTask?.cancel()
+        currentPipelineTask = nil
         recordingStartTime = Date()
         let ws = NSWorkspace.shared
         recordingTargetApp = ws.frontmostApplication.map {
@@ -103,13 +106,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
-            Task {
+            self.currentPipelineTask = Task {
                 do {
                     Logger.pipeline.debug("Audio buffer: \(buffer.count) samples")
                     let output = try await self.transcriptionEngine.transcribe(
                         buffer: buffer,
                         language: self.appSettings.transcriptionLanguage.whisperCode
                     )
+                    try Task.checkCancellation()
                     Logger.pipeline.debug("Detected language: \(output.language ?? "unknown")")
                     Logger.pipeline.debug("Transcript: '\(output.text)'")
                     guard !output.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -180,6 +184,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             container.mainContext.insert(record)
                         }
                     }
+                } catch is CancellationError {
+                    await MainActor.run { self.recordingOverlay.hide() }
                 } catch {
                     Logger.pipeline.error("Pipeline error: \(error)")
                     await MainActor.run { self.recordingOverlay.showError(error.localizedDescription) }
