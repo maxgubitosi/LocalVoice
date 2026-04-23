@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindowController?
     private var cancellables = Set<AnyCancellable>()
 
-    private var modelContainer: ModelContainer!
+    private var modelContainer: ModelContainer?
     private var recordingStartTime: Date = Date()
     private var recordingTargetApp: (bundleID: String, name: String)? = nil
     private var promptStore: PromptStore!
@@ -25,7 +25,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var appSettings = AppSettings()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        modelContainer = try! ModelContainer(for: TranscriptionRecord.self)
+        do {
+            modelContainer = try ModelContainer(for: TranscriptionRecord.self)
+        } catch {
+            Logger.persistence.error("SwiftData init failed: \(error) — history will be unavailable this session")
+        }
 
         requestPermissions()
 
@@ -157,22 +161,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self.textInserter.insert(text: finalText)
                         self.recordingOverlay.hide()
 
-                        let wordCount = finalText.split(separator: " ").count
-                        let record = TranscriptionRecord(
-                            timestamp: startTime,
-                            audioDurationSeconds: audioDuration,
-                            wordCount: wordCount,
-                            detectedLanguage: detectedLanguage,
-                            frontmostAppBundleID: targetApp?.bundleID,
-                            frontmostAppName: targetApp?.name,
-                            mode: mode.rawValue,
-                            whisperModel: whisperModel,
-                            ollamaModel: mode == .llmRewrite ? ollamaModel : nil,
-                            ollamaLatencySeconds: capturedOllamaLatency,
-                            transcribedText: saveText ? finalText : nil,
-                            promptName: capturedPromptName
-                        )
-                        self.modelContainer.mainContext.insert(record)
+                        if let container = self.modelContainer {
+                            let wordCount = finalText.split(separator: " ").count
+                            let record = TranscriptionRecord(
+                                timestamp: startTime,
+                                audioDurationSeconds: audioDuration,
+                                wordCount: wordCount,
+                                detectedLanguage: detectedLanguage,
+                                frontmostAppBundleID: targetApp?.bundleID,
+                                frontmostAppName: targetApp?.name,
+                                mode: mode.rawValue,
+                                whisperModel: whisperModel,
+                                ollamaModel: mode == .llmRewrite ? ollamaModel : nil,
+                                ollamaLatencySeconds: capturedOllamaLatency,
+                                transcribedText: saveText ? finalText : nil,
+                                promptName: capturedPromptName
+                            )
+                            container.mainContext.insert(record)
+                        }
                     }
                 } catch {
                     Logger.pipeline.error("Pipeline error: \(error)")
@@ -201,6 +207,10 @@ extension AppDelegate: MenuBarDelegate {
         appSettings.activePromptID = id
     }
     func showHistory() {
+        guard let modelContainer else {
+            Logger.persistence.error("Cannot show history — SwiftData container unavailable")
+            return
+        }
         if historyWindow == nil {
             historyWindow = HistoryWindowController(modelContainer: modelContainer)
         }
