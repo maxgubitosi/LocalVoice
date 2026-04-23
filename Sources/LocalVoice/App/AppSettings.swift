@@ -55,7 +55,8 @@ final class AppSettings: ObservableObject {
         let savedModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "openai_whisper-large-v3_turbo"
         self.whisperModel = AppSettings.modelMigrations[savedModel] ?? savedModel
         let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
-        self.hotkeyKeyCode = saved > 0 ? UInt16(saved) : 63
+        // Default is Right Command (0x36 = 54). Value 63 was an old non-functional default — treat as unset.
+        self.hotkeyKeyCode = (saved > 0 && saved != 63) ? UInt16(saved) : 54
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
         self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .auto
         self.saveTranscribedText = UserDefaults.standard.bool(forKey: "saveTranscribedText")
