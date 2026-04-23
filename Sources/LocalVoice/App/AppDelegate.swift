@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         recordingOverlay = RecordingOverlayWindow()
         menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self)
         hotkeyManager = HotkeyManager()
+        hotkeyManager.monitoredKeyCode = CGKeyCode(appSettings.hotkeyKeyCode)
 
         hotkeyManager.onHotkeyDown = { [weak self] in
             // captureTarget() hace IPC vía AX — no llamarla desde el tap callback directamente
@@ -65,6 +66,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .dropFirst()
             .sink { [weak self] model in
                 Task { await self?.transcriptionEngine.loadModel(named: model) }
+            }
+            .store(in: &cancellables)
+
+        appSettings.$hotkeyKeyCode
+            .dropFirst()
+            .sink { [weak self] keyCode in
+                self?.hotkeyManager.monitoredKeyCode = CGKeyCode(keyCode)
             }
             .store(in: &cancellables)
     }
