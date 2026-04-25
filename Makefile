@@ -7,6 +7,7 @@ BINARY    := .build/release/$(APP_NAME)
 
 build:
 	swift build -c release
+	@./scripts/build-metallib.sh
 	codesign --force --sign - $(BINARY)
 
 run: build

@@ -16,7 +16,7 @@
     <key>SUFeedURL</key>
     <string>https://github.com/maxgubitosi/LocalVoice/releases/latest/download/appcast.xml</string>
     <key>SUEnableAutomaticChecks</key>
-    <true/>
+    <false/>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>
