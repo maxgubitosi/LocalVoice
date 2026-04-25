@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var audioCapture: AudioCapture!
     private var transcriptionEngine: TranscriptionEngine!
     private var mlxClient: MLXClient!
+    private var mlxModelManager: MLXModelManager!
     private var textInserter: TextInserter!
     private var recordingOverlay: RecordingOverlayWindow!
     private var historyWindow: HistoryWindowController?
@@ -37,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         transcriptionEngine = TranscriptionEngine()
         mlxClient = MLXClient()
         mlxClient.modelID = appSettings.llmModel
+        mlxModelManager = MLXModelManager()
         promptStore = PromptStore()
         textInserter = TextInserter()
         audioCapture = AudioCapture()
@@ -73,6 +75,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .dropFirst()
             .sink { [weak self] model in
                 Task { await self?.transcriptionEngine.loadModel(named: model) }
+            }
+            .store(in: &cancellables)
+
+        appSettings.$llmModel
+            .dropFirst()
+            .sink { [weak self] model in
+                self?.mlxClient.modelID = model
             }
             .store(in: &cancellables)
 
@@ -244,7 +253,12 @@ extension AppDelegate: MenuBarDelegate {
     }
     func showSettings() {
         if settingsWindow == nil {
-            settingsWindow = SettingsWindowController(settings: appSettings, promptStore: promptStore)
+            settingsWindow = SettingsWindowController(
+                settings: appSettings,
+                promptStore: promptStore,
+                mlxModelManager: mlxModelManager,
+                transcriptionEngine: transcriptionEngine
+            )
         }
         settingsWindow?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)

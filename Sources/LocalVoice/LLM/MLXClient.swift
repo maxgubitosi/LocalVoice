@@ -5,8 +5,18 @@ import Tokenizers
 import Foundation
 import OSLog
 
-final class MLXClient {
-    var modelID: String = DeviceCapability.recommendedMLXModel
+final class MLXClient: ObservableObject {
+    @Published private(set) var isLLMModelLoaded: Bool = false
+
+    var modelID: String = DeviceCapability.recommendedMLXModel {
+        didSet {
+            if oldValue != modelID {
+                isLLMModelLoaded = false
+                session = nil
+                loadedModelID = nil
+            }
+        }
+    }
 
     private var container: ModelContainer?
     private var session: ChatSession?
@@ -49,6 +59,7 @@ final class MLXClient {
             container = newContainer
             session = ChatSession(newContainer)
             loadedModelID = modelID
+            isLLMModelLoaded = true
             Logger.llm.info("MLX model loaded: \(self.modelID)")
         }
         guard let session else { throw MLXClientError.modelNotLoaded }

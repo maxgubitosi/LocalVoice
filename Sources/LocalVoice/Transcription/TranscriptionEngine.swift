@@ -32,6 +32,11 @@ final class TranscriptionEngine: ObservableObject {
         }
     }
 
+    func isModelDownloaded(_ model: String) -> Bool {
+        guard let dir = try? modelDirectory() else { return false }
+        return modelAlreadyDownloaded(model, in: dir)
+    }
+
     private func modelAlreadyDownloaded(_ model: String, in dir: URL) -> Bool {
         let coreMLDir = dir.appendingPathComponent("models/argmaxinc/whisperkit-coreml")
         let contents = (try? FileManager.default.contentsOfDirectory(atPath: coreMLDir.path)) ?? []
