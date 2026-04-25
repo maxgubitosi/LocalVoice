@@ -9,7 +9,7 @@ extension Logger {
     static let audio          = Logger(subsystem: subsystem, category: "AudioCapture")
     static let hotkey         = Logger(subsystem: subsystem, category: "HotkeyManager")
     static let transcription  = Logger(subsystem: subsystem, category: "Transcription")
-    static let llm            = Logger(subsystem: subsystem, category: "OllamaClient")
+    static let llm            = Logger(subsystem: subsystem, category: "MLXClient")
     static let textInserter   = Logger(subsystem: subsystem, category: "TextInserter")
     static let persistence    = Logger(subsystem: subsystem, category: "Persistence")
 }

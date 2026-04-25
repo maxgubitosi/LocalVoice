@@ -1,32 +1,27 @@
 import Foundation
 
-/// Detects Apple Silicon generation and RAM to recommend the right Ollama model.
 enum DeviceCapability {
 
-    /// Recommended gemma4 variant for this device.
-    /// - e2b: lighter, faster — for M1/M2 or <16GB RAM
-    /// - e4b: more capable — for M3/M4 or ≥16GB RAM
-    static var recommendedGemmaModel: String {
-        if shouldUseHeavierModel { return "gemma4:e4b" }
-        return "gemma4:e2b"
-    }
-
-    static var recommendedGemmaModelReason: String {
-        let chip = chipGeneration
-        let ram = physicalMemoryGB
-        if shouldUseHeavierModel {
-            return "gemma4:e4b — recomendado para tu \(chip) con \(ram)GB RAM"
-        }
-        return "gemma4:e2b — recomendado para tu \(chip) con \(ram)GB RAM (más rápido, menor consumo)"
-    }
-
-    // MARK: - Private
-
-    private static var shouldUseHeavierModel: Bool {
-        // M3/M4 chips or ≥16GB RAM can comfortably run 4b
+    static var recommendedMLXModel: String {
         let gen = chipGenerationNumber
         let ram = physicalMemoryGB
-        return gen >= 3 || ram >= 16
+        switch (gen, ram) {
+        case (4, 32...):    return "mlx-community/Qwen3.5-27B-4bit"
+        case (3..., 16...): return "mlx-community/Qwen3.5-9B-MLX-4bit"
+        case (_, 16...):    return "mlx-community/Qwen3.5-4B-MLX-4bit"
+        default:            return "mlx-community/Qwen3.5-2B-MLX-4bit"
+        }
+    }
+
+    static var recommendedMLXModelLabel: String {
+        let gen = chipGenerationNumber
+        let ram = physicalMemoryGB
+        switch (gen, ram) {
+        case (4, 32...):    return "Best quality — your Mac can handle this"
+        case (3..., 16...): return "High quality — recommended for your Mac"
+        case (_, 16...):    return "Balanced — recommended for your Mac"
+        default:            return "Fast — recommended for your Mac"
+        }
     }
 
     static var chipGeneration: String {
@@ -36,7 +31,6 @@ enum DeviceCapability {
         sysctlbyname("machdep.cpu.brand_string", &buffer, &size, nil, 0)
         let brand = String(cString: buffer)
 
-        // Apple Silicon shows as "Apple M1", "Apple M2", etc.
         if brand.contains("Apple") {
             for gen in ["M4", "M3", "M2", "M1"] {
                 if brand.contains(gen) { return "Apple \(gen)" }
@@ -46,7 +40,7 @@ enum DeviceCapability {
         return brand
     }
 
-    private static var chipGenerationNumber: Int {
+    static var chipGenerationNumber: Int {
         let gen = chipGeneration
         if gen.contains("M4") { return 4 }
         if gen.contains("M3") { return 3 }

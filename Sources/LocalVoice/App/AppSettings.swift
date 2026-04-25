@@ -43,8 +43,8 @@ final class AppSettings: ObservableObject {
     @Published var mode: AppMode {
         didSet { UserDefaults.standard.set(mode.rawValue, forKey: "mode") }
     }
-    @Published var ollamaModel: String {
-        didSet { UserDefaults.standard.set(ollamaModel, forKey: "ollamaModel") }
+    @Published var llmModel: String {
+        didSet { UserDefaults.standard.set(llmModel, forKey: "llmModel") }
     }
     @Published var whisperModel: String {
         didSet { UserDefaults.standard.set(whisperModel, forKey: "whisperModel") }
@@ -71,7 +71,9 @@ final class AppSettings: ObservableObject {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
         let migratedMode = rawMode == "LLM Rewrite" ? "Refine" : rawMode
         self.mode = AppMode(rawValue: migratedMode) ?? .directTranscription
-        self.ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? DeviceCapability.recommendedGemmaModel
+        self.llmModel = UserDefaults.standard.string(forKey: "llmModel")
+            ?? UserDefaults.standard.string(forKey: "ollamaModel")
+            ?? DeviceCapability.recommendedMLXModel
         let savedModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "openai_whisper-large-v3_turbo"
         self.whisperModel = AppSettings.modelMigrations[savedModel] ?? savedModel
         let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")

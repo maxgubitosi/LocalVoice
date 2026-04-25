@@ -9,7 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyManager: HotkeyManager!
     private var audioCapture: AudioCapture!
     private var transcriptionEngine: TranscriptionEngine!
-    private var ollamaClient: OllamaClient!
+    private var mlxClient: MLXClient!
     private var textInserter: TextInserter!
     private var recordingOverlay: RecordingOverlayWindow!
     private var historyWindow: HistoryWindowController?
@@ -35,8 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         requestPermissions()
 
         transcriptionEngine = TranscriptionEngine()
-        ollamaClient = OllamaClient()
-        ollamaClient.model = appSettings.ollamaModel
+        mlxClient = MLXClient()
+        mlxClient.modelID = appSettings.llmModel
         promptStore = PromptStore()
         textInserter = TextInserter()
         audioCapture = AudioCapture()
@@ -149,21 +149,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
 
                     let finalText: String
-                    var ollamaLatency: Double? = nil
+                    var llmLatency: Double? = nil
 
                     if self.appSettings.mode == .llmRewrite {
                         await MainActor.run { self.recordingOverlay.showRefining(transcript: output.text) }
-                        let ollamaStart = Date()
+                        let llmStart = Date()
                         // Prefer the user-configured language over Whisper's auto-detection (which can misidentify).
                         let languageForLLM = self.appSettings.transcriptionLanguage.whisperCode ?? output.language
                         Logger.pipeline.debug("Language for rewrite: \(languageForLLM ?? "unknown")")
-                        finalText = try await self.ollamaClient.rewrite(
+                        finalText = try await self.mlxClient.rewrite(
                             transcript: output.text,
                             prompt: activePrompt,
                             appContext: self.recordingTargetApp?.name,
                             detectedLanguage: languageForLLM
                         )
-                        ollamaLatency = Date().timeIntervalSince(ollamaStart)
+                        llmLatency = Date().timeIntervalSince(llmStart)
                     } else {
                         finalText = output.text
                     }
@@ -173,10 +173,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let targetApp = self.recordingTargetApp
                     let mode = self.appSettings.mode
                     let whisperModel = TranscriptionEngine.displayName(for: self.appSettings.whisperModel)
-                    let ollamaModel = self.appSettings.ollamaModel
+                    let llmModel = self.appSettings.llmModel
                     let saveText = self.appSettings.saveTranscribedText
                     let detectedLanguage = output.language
-                    let capturedOllamaLatency = ollamaLatency
+                    let capturedLLMLatency = llmLatency
                     let audioDuration = Double(buffer.count) / 16000.0
                     let capturedPromptName: String? = mode == .llmRewrite ? activePrompt.name : nil
 
@@ -195,8 +195,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 frontmostAppName: targetApp?.name,
                                 mode: mode.rawValue,
                                 whisperModel: whisperModel,
-                                ollamaModel: mode == .llmRewrite ? ollamaModel : nil,
-                                ollamaLatencySeconds: capturedOllamaLatency,
+                                llmModel: mode == .llmRewrite ? llmModel : nil,
+                                llmLatencySeconds: capturedLLMLatency,
                                 transcribedText: saveText ? finalText : nil,
                                 promptName: capturedPromptName
                             )
@@ -218,9 +218,9 @@ extension AppDelegate: MenuBarDelegate {
     func modeChanged(to mode: AppMode) {
         appSettings.mode = mode
     }
-    func ollamaModelChanged(to model: String) {
-        appSettings.ollamaModel = model
-        ollamaClient.model = model
+    func llmModelChanged(to model: String) {
+        appSettings.llmModel = model
+        mlxClient.modelID = model
     }
     func whisperModelChanged(to model: String) {
         appSettings.whisperModel = model

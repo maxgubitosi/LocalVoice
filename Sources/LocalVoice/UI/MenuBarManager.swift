@@ -2,7 +2,7 @@ import AppKit
 
 protocol MenuBarDelegate: AnyObject {
     func modeChanged(to mode: AppMode)
-    func ollamaModelChanged(to model: String)
+    func llmModelChanged(to model: String)
     func whisperModelChanged(to model: String)
     func languageChanged(to language: TranscriptionLanguage)
     func promptChanged(to id: UUID)

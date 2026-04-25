@@ -52,9 +52,14 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             }
 
-            Section("Ollama (LLM Rewrite Mode)") {
-                TextField("Model name", text: $settings.ollamaModel)
-                Text("e.g. llama3.2, mistral, phi3. Run: ollama pull <model>")
+            Section("LLM Model") {
+                Picker("Model", selection: $settings.llmModel) {
+                    ForEach(MLXModelCatalog.models) { m in
+                        Text(m.displayName).tag(m.id)
+                    }
+                }
+                .pickerStyle(.menu)
+                Text(DeviceCapability.recommendedMLXModelLabel)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
