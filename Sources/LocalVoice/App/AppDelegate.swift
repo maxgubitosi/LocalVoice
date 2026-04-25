@@ -2,9 +2,11 @@ import AppKit
 import AVFoundation
 import Combine
 import OSLog
+import Sparkle
 import SwiftData
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var updaterController: SPUStandardUpdaterController!
     private var menuBarManager: MenuBarManager!
     private var hotkeyManager: HotkeyManager!
     private var audioCapture: AudioCapture!
@@ -35,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         requestPermissions()
 
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+
         transcriptionEngine = TranscriptionEngine()
         mlxClient = MLXClient()
         mlxClient.modelID = appSettings.llmModel
@@ -43,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         textInserter = TextInserter()
         audioCapture = AudioCapture()
         recordingOverlay = RecordingOverlayWindow()
-        menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self)
+        menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self, updaterController: updaterController)
         hotkeyManager = HotkeyManager()
         hotkeyManager.monitoredKeyCode = CGKeyCode(appSettings.hotkeyKeyCode)
 
