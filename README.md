@@ -17,24 +17,34 @@ A free macOS app for local, private voice-to-text. 100% local, no cloud, no APIs
 - Transcription history with stats and CSV export (⌘H)
 - Animated floating overlay while recording
 
+## Download
+
+Grab the latest `LocalVoice.zip` from [GitHub Releases](https://github.com/maxgubitosi/LocalVoice/releases), unzip, and drag `LocalVoice.app` to your Applications folder.
+
+> **First launch:** right-click the app → **Open** the first time (macOS Gatekeeper requires this for unsigned apps). After that, it opens normally.
+
 ## Requirements
 
 - macOS 14 (Sonoma) or later
 - Apple Silicon Mac (M1 or later)
-- Xcode installed (required to compile Metal shaders — not just Command Line Tools)
 
-## Setup
+## Building from source
+
+Requires full Xcode (not just Command Line Tools) — Metal shader compilation uses `xcrun metal`.
 
 ```bash
 # 1. Clone
 git clone https://github.com/maxgubitosi/LocalVoice.git
 cd LocalVoice
 
-# 2. Build
-make build
-
-# 3. Run
+# 2. Build and run
 make run
+```
+
+To build a distributable zip:
+
+```bash
+make release-zip   # produces LocalVoice.zip, ready to upload to GitHub Releases
 ```
 
 Mode 1 (Direct Transcription) works immediately. Mode 2 (LLM Rewrite) will prompt you to download a Qwen3.5 model on first use — this happens inside the app, no manual steps needed.

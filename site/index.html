@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LocalVoice — Local, private voice-to-text for macOS</title>
+  <meta name="description" content="A free macOS app for local, private voice-to-text. 100% local, no cloud, no APIs, no subscription. Your voice never leaves your machine.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ====== Nav ====== -->
+<header class="mk-nav">
+  <div class="mk-nav-inner">
+    <a href="#" class="mk-logo">
+      <!-- waveform.circle logo -->
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle cx="32" cy="32" r="29" stroke="currentColor" stroke-width="2.2"/>
+        <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <line x1="20" y1="32" x2="20" y2="32"/>
+          <line x1="25" y1="27" x2="25" y2="37"/>
+          <line x1="30" y1="22" x2="30" y2="42"/>
+          <line x1="35" y1="25" x2="35" y2="39"/>
+          <line x1="40" y1="29" x2="40" y2="35"/>
+          <line x1="45" y1="31" x2="45" y2="33"/>
+        </g>
+      </svg>
+      Local<span class="accent">Voice</span>
+    </a>
+    <nav class="mk-nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
+    </nav>
+    <a class="mk-nav-cta" href="https://github.com/maxgubitosi/LocalVoice/releases">&#8595; Download</a>
+  </div>
+</header>
+
+<main>
+
+<!-- ====== Hero ====== -->
+<section class="mk-hero mk-page">
+  <div class="mk-eyebrow">
+    <span class="dot"></span>
+    Open source &middot; macOS 14+ &middot; Apple Silicon
+  </div>
+
+  <h1 class="mk-h1">Speak. <em>Press release.</em><br>Text appears.</h1>
+
+  <p class="mk-sub">
+    A free macOS app for local, private voice-to-text.
+    Hold Right &#8984;, speak, release — your words land in any app.
+    No cloud, no APIs, no subscription.
+  </p>
+
+  <div class="mk-cta-row">
+    <a href="https://github.com/maxgubitosi/LocalVoice/releases" class="mk-cta mk-cta-primary">&#8595; Download for macOS</a>
+    <a href="https://github.com/maxgubitosi/LocalVoice" class="mk-cta mk-cta-secondary">View on GitHub</a>
+  </div>
+
+  <div class="mk-cta-meta">Apple Silicon &middot; macOS 14 Sonoma+</div>
+
+  <!-- Hero stage: dark desktop scene -->
+  <div class="mk-hero-stage">
+    <div class="mk-hero-grid"></div>
+    <!-- Simulated compose window -->
+    <div class="mk-hero-textbox">
+      <div class="lbl">Mail &middot; New Message</div>
+      <div class="body">Hi Maya, I've reviewed the deck and have a few notes — mostly around slide 4 where the framing could be tighter.<span class="caret"></span></div>
+    </div>
+    <!-- Recording capsule — the brand moment -->
+    <div class="lv-cap">
+      <div class="lv-dot-wrap">
+        <div class="lv-dot-halo"></div>
+        <div class="lv-dot"></div>
+      </div>
+      <div class="lv-bars">
+        <span style="height:8px;  animation-delay:0s"></span>
+        <span style="height:18px; animation-delay:0.1s"></span>
+        <span style="height:26px; animation-delay:0.2s"></span>
+        <span style="height:14px; animation-delay:0.3s"></span>
+        <span style="height:22px; animation-delay:0.4s"></span>
+        <span style="height:10px; animation-delay:0.5s"></span>
+        <span style="height:20px; animation-delay:0.6s"></span>
+        <span style="height:6px;  animation-delay:0.7s"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Features ====== -->
+<section id="features" class="mk-section mk-page">
+  <div class="mk-section-head">
+    <div class="mk-tag">Features</div>
+    <h2 class="mk-h2">Built like a Mac power tool, not a SaaS app.</h2>
+  </div>
+  <div class="mk-grid">
+
+    <!-- 100% on-device -->
+    <div class="mk-feat">
+      <div class="mk-feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="11" width="16" height="10" rx="2"/>
+          <path d="M8 11V8a4 4 0 018 0v3"/>
+        </svg>
+      </div>
+      <div class="mk-feat-h">100% on-device</div>
+      <div class="mk-feat-p">Whisper for speech, MLX for rewriting. Your audio and text never leave your Mac.</div>
+      <div class="mk-feat-mono">0 network calls</div>
+    </div>
+
+    <!-- Instant insertion -->
+    <div class="mk-feat">
+      <div class="mk-feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
+        </svg>
+      </div>
+      <div class="mk-feat-h">Instant insertion</div>
+      <div class="mk-feat-p">AXUIElement writes directly into the focused field. No clipboard pollution.</div>
+      <div class="mk-feat-mono">Pasteboard fallback</div>
+    </div>
+
+    <!-- Hold or latch -->
+    <div class="mk-feat">
+      <div class="mk-feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 6a2 2 0 110 4H6a2 2 0 110-4 2 2 0 012 2v8a2 2 0 11-2 2 2 2 0 012-2h8a2 2 0 110 4 2 2 0 01-2-2V8a2 2 0 112-2 2 2 0 01-2 2H8z"/>
+        </svg>
+      </div>
+      <div class="mk-feat-h">Hold or latch</div>
+      <div class="mk-feat-p">Hold Right &#8984; to record, or double-tap to latch. Press 1–9 to switch prompts on the fly.</div>
+      <div class="mk-feat-mono">Right &#8984;</div>
+    </div>
+
+    <!-- Skips password fields -->
+    <div class="mk-feat">
+      <div class="mk-feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"/>
+        </svg>
+      </div>
+      <div class="mk-feat-h">Skips password fields</div>
+      <div class="mk-feat-p">Detects <code>kAXSecureTextField</code> and refuses to insert. A hard security invariant.</div>
+      <div class="mk-feat-mono">kAXSecureTextFieldRole</div>
+    </div>
+
+    <!-- Bring your own prompt -->
+    <div class="mk-feat">
+      <div class="mk-feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+          <circle cx="9" cy="6" r="2.2" fill="currentColor"/>
+          <circle cx="15" cy="12" r="2.2" fill="currentColor"/>
+          <circle cx="7" cy="18" r="2.2" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="mk-feat-h">Bring your own prompt</div>
+      <div class="mk-feat-p">Polish, summarize, translate, format as bullets — define prompts and bind them to number keys.</div>
+      <div class="mk-feat-mono">Right &#8984; + 1–9</div>
+    </div>
+
+    <!-- History with stats -->
+    <div class="mk-feat">
+      <div class="mk-feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 7v5l3 2"/>
+        </svg>
+      </div>
+      <div class="mk-feat-h">History with stats</div>
+      <div class="mk-feat-p">Every transcription logged locally. Export to CSV. Per-app, per-mode, per-language stats.</div>
+      <div class="mk-feat-mono">&#8984;H</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====== How it works ====== -->
+<section id="how" class="mk-section mk-page">
+  <div class="mk-section-head">
+    <div class="mk-tag">How it works</div>
+    <h2 class="mk-h2">Three keys. Three seconds.</h2>
+  </div>
+  <div class="mk-steps">
+
+    <div class="mk-step">
+      <div class="mk-step-num">01</div>
+      <div class="mk-step-h">Hold Right &#8984;</div>
+      <div class="mk-step-p">Press and hold the right Command key. The recording capsule appears in the corner of your screen.</div>
+      <div class="mk-step-vis">
+        <span>&#8984; held</span>
+      </div>
+    </div>
+
+    <div class="mk-step">
+      <div class="mk-step-num">02</div>
+      <div class="mk-step-h">Speak</div>
+      <div class="mk-step-p">Whisper transcribes locally on the Apple Neural Engine. Optionally Qwen3.5 (MLX) cleans it up — also locally.</div>
+      <div class="mk-step-vis mk-step-vis-dark">
+        <div class="lv-cap">
+          <div class="lv-dot-wrap">
+            <div class="lv-dot-halo"></div>
+            <div class="lv-dot"></div>
+          </div>
+          <div class="lv-bars">
+            <span style="height:8px;  animation-delay:0.05s"></span>
+            <span style="height:20px; animation-delay:0.15s"></span>
+            <span style="height:14px; animation-delay:0.25s"></span>
+            <span style="height:24px; animation-delay:0.35s"></span>
+            <span style="height:10px; animation-delay:0.45s"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-step">
+      <div class="mk-step-num">03</div>
+      <div class="mk-step-h">Release</div>
+      <div class="mk-step-p">Text is inserted directly into the focused field via AXUIElement. No clipboard, no network.</div>
+      <div class="mk-step-vis">
+        <span>text &#8594; focused field</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====== Privacy ====== -->
+<section id="privacy" class="mk-section mk-page">
+  <div class="mk-privacy">
+    <div class="mk-tag" style="color:#73bfff">Privacy</div>
+    <h2 class="mk-h2">Your voice never leaves your machine.</h2>
+    <p class="mk-section-sub">No cloud transcription. No API keys. No subscription. The app is open-source under MIT — you can read every line that touches your audio.</p>
+    <div class="mk-privacy-stats">
+      <div class="mk-privacy-stat">
+        <div class="mk-privacy-stat-v">0</div>
+        <div class="mk-privacy-stat-l">network calls</div>
+      </div>
+      <div class="mk-privacy-stat">
+        <div class="mk-privacy-stat-v">100%</div>
+        <div class="mk-privacy-stat-l">on-device</div>
+      </div>
+      <div class="mk-privacy-stat">
+        <div class="mk-privacy-stat-v">MIT</div>
+        <div class="mk-privacy-stat-l">licensed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ====== Footer ====== -->
+<footer class="mk-page mk-footer">
+  <div class="mk-footer-logo">
+    <svg viewBox="0 0 64 64" fill="none" width="16" height="16" aria-hidden="true">
+      <circle cx="32" cy="32" r="29" stroke="currentColor" stroke-width="2.2"/>
+      <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+        <line x1="20" y1="32" x2="20" y2="32"/>
+        <line x1="25" y1="27" x2="25" y2="37"/>
+        <line x1="30" y1="22" x2="30" y2="42"/>
+        <line x1="35" y1="25" x2="35" y2="39"/>
+        <line x1="40" y1="29" x2="40" y2="35"/>
+        <line x1="45" y1="31" x2="45" y2="33"/>
+      </g>
+    </svg>
+    <span>LocalVoice &mdash; &copy; 2026 &middot; MIT License</span>
+  </div>
+  <div class="mk-footer-links">
+    <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
+    <a href="https://github.com/maxgubitosi/LocalVoice/blob/main/README.md">Docs</a>
+    <a href="https://github.com/maxgubitosi/LocalVoice/issues">Issues</a>
+  </div>
+</footer>
+
+</body>
+</html>
