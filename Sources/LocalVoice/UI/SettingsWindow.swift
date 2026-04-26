@@ -23,9 +23,10 @@ final class SettingsWindowController: NSWindowController {
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
-    let promptStore: PromptStore
+    @ObservedObject var promptStore: PromptStore
     @ObservedObject var mlxModelManager: MLXModelManager
     let transcriptionEngine: TranscriptionEngine
+    @State private var showingPromptManager = false
 
     var body: some View {
         Form {
@@ -82,9 +83,14 @@ struct SettingsView: View {
                         Text(p.name).tag(Optional(p.id))
                     }
                 }
+                Button("Manage Prompts…") { showingPromptManager = true }
                 Text("Hold Right ⌘ + number key to temporarily use a different prompt.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+            .sheet(isPresented: $showingPromptManager) {
+                PromptsManagementView(promptStore: promptStore, settings: settings)
+                    .frame(minWidth: 560, minHeight: 400)
             }
 
             Section("Privacy") {

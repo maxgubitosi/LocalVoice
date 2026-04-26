@@ -38,12 +38,15 @@ Package.resolved
 # Claude AI memory (local only)
 memory/
 
-# Benchmark inputs and outputs
-Benchmark/inputs/
-Benchmark/outputs/
+# Docs
+Docs/
+
+# Benchmark and Tests
+Benchmark/
+Tests/
 
 # Ignore all .m4a files
 *.m4a
 
 # Git worktrees
-.worktrees/
+.worktrees/.superpowers/

@@ -1,0 +1,54 @@
+<h2>LocalVoice — Áreas de mejora</h2>
+<p class="subtitle">¿Por dónde empezamos? Seleccioná las que querés abordar primero.</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="sparkle" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Bug: Error de Sparkle al iniciar</h3>
+      <p>Al hacer <code>make run</code>, aparece un cartel de error relacionado con actualizaciones. El updater intenta contactar el servidor aunque <code>SUEnableAutomaticChecks</code> esté en <code>false</code>. Fix sencillo pero visible — bloquea la primera impresión.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Impacto</h4><ul><li>Primera impresión al abrir la app</li><li>Fix rápido (1–2 líneas)</li></ul></div>
+        <div class="cons"><h4>Complejidad</h4><ul><li>Baja</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="hotkey" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Bug: Right Command — primera pulsación no anda</h3>
+      <p>El event tap de CGEvent se registra correctamente, pero la primera vez que se presiona Right ⌘ después de lanzar la app no dispara la grabación. Probablemente hay una race condition o el sistema tarda en activar el tap.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Impacto</h4><ul><li>Frustrante para usuarios nuevos</li><li>Core feature de la app</li></ul></div>
+        <div class="cons"><h4>Complejidad</h4><ul><li>Media — necesita debug del event tap</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="prompts" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Feature: UI de gestión de prompts</h3>
+      <p>Hoy Settings solo muestra un Picker para elegir el prompt activo. No hay forma de crear, editar ni borrar prompts personalizados desde la app. El PromptStore ya existe — solo falta la UI.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Impacto</h4><ul><li>Alto — Refine Mode es el diferenciador</li><li>Sin UI, el usuario no puede personalizar</li></ul></div>
+        <div class="cons"><h4>Complejidad</h4><ul><li>Media — CRUD con SwiftUI</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="ui" onclick="toggleSelect(this)">
+    <div class="letter">4</div>
+    <div class="content">
+      <h3>Diseño: Pulir la interfaz</h3>
+      <p>Settings, overlay de grabación, historial y ventana de first-run tienen UI funcional pero genérica. El objetivo es que se vea como una app terminada y pulida, lista para open source.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Impacto</h4><ul><li>Alto para open source / primera impresión</li><li>Diferencia una tool de un producto</li></ul></div>
+        <div class="cons"><h4>Complejidad</h4><ul><li>Alta — muchas vistas a mejorar</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top: 1.5rem;">Podés seleccionar varias. Los bugs (1 y 2) los hacemos nosotros; para UI (4) podemos definir exactamente qué pedirle a Claude Design.</p>

@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         requestPermissions()
 
         updaterController = SPUStandardUpdaterController(
-            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+            startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
 
         transcriptionEngine = TranscriptionEngine()
         mlxClient = MLXClient()
@@ -54,15 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.monitoredKeyCode = CGKeyCode(appSettings.hotkeyKeyCode)
 
         hotkeyManager.onHotkeyDown = { [weak self] in
-            // captureTarget() hace IPC vía AX — no llamarla desde el tap callback directamente
-            // para no bloquear el run loop y que macOS no deshabilite el tap.
+            // Everything on main thread: captureTarget() does AX IPC, startRecording() touches
+            // app state. Calling either from the CG event tap thread causes race conditions.
             DispatchQueue.main.async {
                 self?.textInserter.captureTarget()
                 if let ctx = self?.textInserter.captureContext() {
                     Logger.textInserter.debug("Target: \(ctx.appName ?? "unknown") (\(ctx.bundleID ?? "?")) — role: \(ctx.axRole ?? "none"), native: \(ctx.isNativeField)")
                 }
+                self?.startRecording()
             }
-            self?.startRecording()
         }
         hotkeyManager.onHotkeyUp     = { [weak self] in self?.stopAndProcess() }
         hotkeyManager.onHotkeyCancel = { [weak self] in self?.cancelRecording() }
