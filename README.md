@@ -9,9 +9,9 @@ A macOS menu bar app for local, private voice-to-text. 100% local, no cloud, no 
 - **Hold mode**: hold Right Command (⌘) → speak → release → text appears in any app
 - **Latch mode**: double-tap Right Command → speak → tap again → text appears
 - **Mode 1 — Direct Transcription**: speech → Whisper → inserted instantly
-- **Mode 2 — LLM Rewrite**: speech → Whisper → Ollama (Gemma4) → polished text inserted
-- Powered by [WhisperKit](https://github.com/argmaxinc/WhisperKit) v0.18 (Apple Neural Engine optimized)
-- Local LLM via [Ollama](https://ollama.com) — runs entirely on your Mac
+- **Mode 2 — LLM Rewrite**: speech → Whisper → MLX in-process (Qwen3.5) → polished text inserted
+- Powered by [WhisperKit](https://github.com/argmaxinc/WhisperKit) (Apple Neural Engine optimized)
+- Local LLM via [mlx-swift](https://github.com/ml-explore/mlx-swift) — runs entirely on your Mac, no external server
 - Smart text insertion: AXUIElement API (no clipboard pollution) with pasteboard fallback
 - Skips password fields automatically (`AXSecureTextField`)
 - Transcription history with stats and CSV export (⌘H)
@@ -20,8 +20,8 @@ A macOS menu bar app for local, private voice-to-text. 100% local, no cloud, no 
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Apple Silicon Mac recommended (M1/M2/M3/M4)
-- [Ollama](https://ollama.com) installed and running (for Mode 2 only)
+- Apple Silicon Mac (M1 or later)
+- Xcode installed (required to compile Metal shaders — not just Command Line Tools)
 
 ## Setup
 
@@ -31,25 +31,13 @@ git clone https://github.com/maxgubitosi/LocalVoice.git
 cd LocalVoice
 
 # 2. Build
-swift build -c release
+make build
 
 # 3. Run
-.build/release/LocalVoice
+make run
 ```
 
-### For Mode 2 (LLM Rewrite)
-
-```bash
-# Install Ollama
-brew install ollama
-
-# Pull the recommended model for your hardware
-ollama pull gemma4:e2b   # M1/M2 or <16 GB RAM
-ollama pull gemma4:e4b   # M3/M4 or ≥16 GB RAM
-
-# Start the server
-ollama serve
-```
+Mode 1 (Direct Transcription) works immediately. Mode 2 (LLM Rewrite) will prompt you to download a Qwen3.5 model on first use — this happens inside the app, no manual steps needed.
 
 ## Permissions
 
@@ -83,11 +71,15 @@ Go to **System Settings → Privacy & Security** to grant these. The app won't w
 | **large-v3-turbo** | ~2s | **Best (recommended)** | ~800 MB |
 | large-v3 | ~3s | Best | ~3 GB |
 
-Default: `large-v3-turbo` — best quality-to-speed ratio. Uses OpenAI's turbo decoder (4-layer vs 32 in large-v3) for 6× faster inference with minimal quality loss. Runs comfortably on M1 8 GB. Switch models from the menu bar or Settings.
+Default: `large-v3-turbo` — best quality-to-speed ratio. Switch models from Settings.
 
 ## Architecture
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical design.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

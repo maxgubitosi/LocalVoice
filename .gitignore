@@ -50,3 +50,10 @@ Tests/
 
 # Git worktrees
 .worktrees/.superpowers/
+
+# AI tooling (local only)
+.superpowers/
+.claude/
+
+# Internal development docs
+docs/superpowers/
