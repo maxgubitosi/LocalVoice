@@ -1,6 +1,6 @@
 # LocalVoice
 
-A macOS menu bar app for local, private voice-to-text. 100% local, no cloud, no subscription.
+A free macOS app for local, private voice-to-text. 100% local, no cloud, no APIs, no subscription.
 
 **Your voice never leaves your machine.**
 
@@ -43,11 +43,13 @@ Mode 1 (Direct Transcription) works immediately. Mode 2 (LLM Rewrite) will promp
 
 On first launch, LocalVoice will request:
 
-| Permission | Why |
-|---|---|
-| **Microphone** | To capture your voice |
-| **Accessibility** | To insert text into other apps via AXUIElement |
-| **Input Monitoring** | To detect the global hotkey |
+
+| Permission           | Why                                            |
+| -------------------- | ---------------------------------------------- |
+| **Microphone**       | To capture your voice                          |
+| **Accessibility**    | To insert text into other apps via AXUIElement |
+| **Input Monitoring** | To detect the global hotkey                    |
+
 
 Go to **System Settings → Privacy & Security** to grant these. The app won't work without Accessibility and Input Monitoring.
 
@@ -55,21 +57,25 @@ Go to **System Settings → Privacy & Security** to grant these. The app won't w
 
 **Right Command (⌘)** — the default hotkey. Two modes available from the menu bar:
 
-| Mode | Gesture |
-|---|---|
-| **Hold** | Hold to record, release to transcribe |
+
+| Mode      | Gesture                                 |
+| --------- | --------------------------------------- |
+| **Hold**  | Hold to record, release to transcribe   |
 | **Latch** | Double-tap to start, single tap to stop |
+
 
 ## Whisper Models
 
-| Model | Speed | Accuracy | RAM |
-|---|---|---|---|
-| tiny | ~0.1s | Good | ~75 MB |
-| base | ~0.2s | Better | ~145 MB |
-| small | ~0.5s | Great | ~465 MB |
-| medium | ~1.5s | Excellent | ~1.5 GB |
-| **large-v3-turbo** | ~2s | **Best (recommended)** | ~800 MB |
-| large-v3 | ~3s | Best | ~3 GB |
+
+| Model              | Speed | Accuracy               | RAM     |
+| ------------------ | ----- | ---------------------- | ------- |
+| tiny               | ~0.1s | Good                   | ~75 MB  |
+| base               | ~0.2s | Better                 | ~145 MB |
+| small              | ~0.5s | Great                  | ~465 MB |
+| medium             | ~1.5s | Excellent              | ~1.5 GB |
+| **large-v3-turbo** | ~2s   | **Best (recommended)** | ~800 MB |
+| large-v3           | ~3s   | Best                   | ~3 GB   |
+
 
 Default: `large-v3-turbo` — best quality-to-speed ratio. Switch models from Settings.
 
