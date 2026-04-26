@@ -11,8 +11,8 @@ final class TranscriptionRecord {
     var frontmostAppName: String?
     var mode: String
     var whisperModel: String
-    var ollamaModel: String?
-    var ollamaLatencySeconds: Double?
+    @Attribute(originalName: "ollamaModel") var llmModel: String?
+    @Attribute(originalName: "ollamaLatencySeconds") var llmLatencySeconds: Double?
     var transcribedText: String?
     var promptName: String?
 
@@ -25,8 +25,8 @@ final class TranscriptionRecord {
         frontmostAppName: String?,
         mode: String,
         whisperModel: String,
-        ollamaModel: String?,
-        ollamaLatencySeconds: Double?,
+        llmModel: String?,
+        llmLatencySeconds: Double?,
         transcribedText: String?,
         promptName: String?
     ) {
@@ -38,8 +38,8 @@ final class TranscriptionRecord {
         self.frontmostAppName = frontmostAppName
         self.mode = mode
         self.whisperModel = whisperModel
-        self.ollamaModel = ollamaModel
-        self.ollamaLatencySeconds = ollamaLatencySeconds
+        self.llmModel = llmModel
+        self.llmLatencySeconds = llmLatencySeconds
         self.transcribedText = transcribedText
         self.promptName = promptName
     }

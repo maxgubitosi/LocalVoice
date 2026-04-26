@@ -2,18 +2,22 @@ import AppKit
 import AVFoundation
 import Combine
 import OSLog
+import Sparkle
 import SwiftData
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var updaterController: SPUStandardUpdaterController!
     private var menuBarManager: MenuBarManager!
     private var hotkeyManager: HotkeyManager!
     private var audioCapture: AudioCapture!
     private var transcriptionEngine: TranscriptionEngine!
-    private var ollamaClient: OllamaClient!
+    private var mlxClient: MLXClient!
+    private var mlxModelManager: MLXModelManager!
     private var textInserter: TextInserter!
     private var recordingOverlay: RecordingOverlayWindow!
     private var historyWindow: HistoryWindowController?
     private var settingsWindow: SettingsWindowController?
+    private var firstRunWindow: FirstRunWindowController?
     private var cancellables = Set<AnyCancellable>()
 
     private var modelContainer: ModelContainer?
@@ -34,14 +38,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         requestPermissions()
 
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+
         transcriptionEngine = TranscriptionEngine()
-        ollamaClient = OllamaClient()
-        ollamaClient.model = appSettings.ollamaModel
+        mlxClient = MLXClient()
+        mlxClient.modelID = appSettings.llmModel
+        mlxModelManager = MLXModelManager()
         promptStore = PromptStore()
         textInserter = TextInserter()
         audioCapture = AudioCapture()
         recordingOverlay = RecordingOverlayWindow()
-        menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self)
+        menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self, updaterController: updaterController)
         hotkeyManager = HotkeyManager()
         hotkeyManager.monitoredKeyCode = CGKeyCode(appSettings.hotkeyKeyCode)
 
@@ -76,12 +84,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        appSettings.$llmModel
+            .dropFirst()
+            .sink { [weak self] model in
+                self?.mlxClient.modelID = model
+            }
+            .store(in: &cancellables)
+
         appSettings.$hotkeyKeyCode
             .dropFirst()
             .sink { [weak self] keyCode in
                 self?.hotkeyManager.monitoredKeyCode = CGKeyCode(keyCode)
             }
             .store(in: &cancellables)
+
+        if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
+            showFirstRunWindow()
+        }
+    }
+
+    private func showFirstRunWindow() {
+        let mlxModelID = appSettings.llmModel
+        let whisperModel = appSettings.whisperModel
+        firstRunWindow = FirstRunWindowController(
+            transcriptionEngine: transcriptionEngine,
+            mlxModelManager: mlxModelManager,
+            whisperModel: whisperModel,
+            mlxModelID: mlxModelID,
+            onComplete: { [weak self] in
+                UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+                self?.firstRunWindow?.close()
+                self?.firstRunWindow = nil
+            }
+        )
+        firstRunWindow?.showWindow(nil)
+
+        Task {
+            if DeviceCapability.physicalMemoryGB >= 16 {
+                async let whisperLoad: Void = await transcriptionEngine.loadModel(named: whisperModel)
+                async let mlxDownload: Void = try await mlxModelManager.downloadModel(mlxModelID)
+                _ = try await (whisperLoad, mlxDownload)
+            } else {
+                await transcriptionEngine.loadModel(named: whisperModel)
+                try? await mlxModelManager.downloadModel(mlxModelID)
+            }
+        }
     }
 
     private func requestPermissions() {
@@ -141,6 +188,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return
                     }
 
+                    let isMLXDownloaded = await self.mlxModelManager.isDownloaded(self.appSettings.llmModel)
+                    if self.appSettings.mode == .llmRewrite && !self.mlxClient.isLLMModelLoaded
+                        && !isMLXDownloaded {
+                        await MainActor.run {
+                            self.recordingOverlay.showError("LLM model not downloaded. Open Settings to download it.")
+                        }
+                        return
+                    }
+
                     let activePrompt: LLMPrompt
                     if let n = capturedKeyNumber, let p = self.promptStore.prompt(withKeyNumber: n) {
                         activePrompt = p
@@ -149,21 +205,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
 
                     let finalText: String
-                    var ollamaLatency: Double? = nil
+                    var llmLatency: Double? = nil
 
                     if self.appSettings.mode == .llmRewrite {
                         await MainActor.run { self.recordingOverlay.showRefining(transcript: output.text) }
-                        let ollamaStart = Date()
+                        let llmStart = Date()
                         // Prefer the user-configured language over Whisper's auto-detection (which can misidentify).
                         let languageForLLM = self.appSettings.transcriptionLanguage.whisperCode ?? output.language
                         Logger.pipeline.debug("Language for rewrite: \(languageForLLM ?? "unknown")")
-                        finalText = try await self.ollamaClient.rewrite(
+                        finalText = try await self.mlxClient.rewrite(
                             transcript: output.text,
                             prompt: activePrompt,
                             appContext: self.recordingTargetApp?.name,
                             detectedLanguage: languageForLLM
                         )
-                        ollamaLatency = Date().timeIntervalSince(ollamaStart)
+                        llmLatency = Date().timeIntervalSince(llmStart)
                     } else {
                         finalText = output.text
                     }
@@ -173,10 +229,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let targetApp = self.recordingTargetApp
                     let mode = self.appSettings.mode
                     let whisperModel = TranscriptionEngine.displayName(for: self.appSettings.whisperModel)
-                    let ollamaModel = self.appSettings.ollamaModel
+                    let llmModel = self.appSettings.llmModel
                     let saveText = self.appSettings.saveTranscribedText
                     let detectedLanguage = output.language
-                    let capturedOllamaLatency = ollamaLatency
+                    let capturedLLMLatency = llmLatency
                     let audioDuration = Double(buffer.count) / 16000.0
                     let capturedPromptName: String? = mode == .llmRewrite ? activePrompt.name : nil
 
@@ -195,8 +251,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 frontmostAppName: targetApp?.name,
                                 mode: mode.rawValue,
                                 whisperModel: whisperModel,
-                                ollamaModel: mode == .llmRewrite ? ollamaModel : nil,
-                                ollamaLatencySeconds: capturedOllamaLatency,
+                                llmModel: mode == .llmRewrite ? llmModel : nil,
+                                llmLatencySeconds: capturedLLMLatency,
                                 transcribedText: saveText ? finalText : nil,
                                 promptName: capturedPromptName
                             )
@@ -218,9 +274,9 @@ extension AppDelegate: MenuBarDelegate {
     func modeChanged(to mode: AppMode) {
         appSettings.mode = mode
     }
-    func ollamaModelChanged(to model: String) {
-        appSettings.ollamaModel = model
-        ollamaClient.model = model
+    func llmModelChanged(to model: String) {
+        appSettings.llmModel = model
+        mlxClient.modelID = model
     }
     func whisperModelChanged(to model: String) {
         appSettings.whisperModel = model
@@ -244,7 +300,12 @@ extension AppDelegate: MenuBarDelegate {
     }
     func showSettings() {
         if settingsWindow == nil {
-            settingsWindow = SettingsWindowController(settings: appSettings, promptStore: promptStore)
+            settingsWindow = SettingsWindowController(
+                settings: appSettings,
+                promptStore: promptStore,
+                mlxModelManager: mlxModelManager,
+                transcriptionEngine: transcriptionEngine
+            )
         }
         settingsWindow?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)

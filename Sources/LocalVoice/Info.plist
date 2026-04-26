@@ -10,9 +10,13 @@
     <key>CFBundleExecutable</key>
     <string>LocalVoice</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>1</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
+    <key>SUFeedURL</key>
+    <string>https://github.com/maxgubitosi/LocalVoice/releases/latest/download/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <false/>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSUIElement</key>

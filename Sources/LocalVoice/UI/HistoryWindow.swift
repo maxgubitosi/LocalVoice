@@ -212,7 +212,7 @@ struct ExportButton: View {
     }
 
     private func buildCSV() -> String {
-        let header = "timestamp,app,mode,whisperModel,ollamaModel,wordCount,durationSeconds,wpm,language,promptName,text"
+        let header = "timestamp,app,mode,whisperModel,llmModel,wordCount,durationSeconds,wpm,language,promptName,text"
         let rows = records.map { r -> String in
             let wpm: String = r.audioDurationSeconds > 0
                 ? String(format: "%.1f", Double(r.wordCount) / r.audioDurationSeconds * 60)
@@ -222,7 +222,7 @@ struct ExportButton: View {
                 escape(r.frontmostAppName ?? ""),
                 escape(r.mode),
                 escape(r.whisperModel),
-                escape(r.ollamaModel ?? ""),
+                escape(r.llmModel ?? ""),
                 "\(r.wordCount)",
                 String(format: "%.2f", r.audioDurationSeconds),
                 wpm,

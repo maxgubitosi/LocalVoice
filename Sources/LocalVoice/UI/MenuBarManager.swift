@@ -1,8 +1,9 @@
 import AppKit
+import Sparkle
 
 protocol MenuBarDelegate: AnyObject {
     func modeChanged(to mode: AppMode)
-    func ollamaModelChanged(to model: String)
+    func llmModelChanged(to model: String)
     func whisperModelChanged(to model: String)
     func languageChanged(to language: TranscriptionLanguage)
     func promptChanged(to id: UUID)
@@ -16,13 +17,15 @@ final class MenuBarManager: NSObject {
     private let settings: AppSettings
     private let promptStore: PromptStore
     private weak var delegate: MenuBarDelegate?
+    private weak var updaterController: SPUStandardUpdaterController?
 
     private var statusButton: NSStatusBarButton? { statusItem.button }
 
-    init(settings: AppSettings, promptStore: PromptStore, delegate: MenuBarDelegate) {
+    init(settings: AppSettings, promptStore: PromptStore, delegate: MenuBarDelegate, updaterController: SPUStandardUpdaterController) {
         self.settings = settings
         self.promptStore = promptStore
         self.delegate = delegate
+        self.updaterController = updaterController
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
         configureButton()
@@ -133,6 +136,14 @@ final class MenuBarManager: NSObject {
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(settingsSelected), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
+
+        // Check for Updates
+        if let updater = updaterController?.updater {
+            let updateItem = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+            updateItem.target = updaterController
+            updateItem.isEnabled = updater.canCheckForUpdates
+            menu.addItem(updateItem)
+        }
 
         menu.addItem(.separator())
 

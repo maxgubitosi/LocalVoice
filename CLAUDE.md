@@ -9,22 +9,35 @@ Sin cloud, sin suscripción. Todo el procesamiento corre localmente en el Mac.
 
 - **Hotkey modo hold:** mantener Right Command (⌘ derecho) → graba, soltar → transcribe
 - **Hotkey modo latch:** doble-tap Right Command → empieza a grabar, tap → para y transcribe
-- **Modo 1:** audio → Whisper → texto insertado en la app activa
-- **Modo 2:** audio → Whisper → Ollama (gemma4) → texto reescrito → insertado
+- **Modo 1 (Direct):** audio → Whisper → texto insertado en la app activa
+- **Modo 2 (Refine):** audio → Whisper → MLX (Qwen3.5 en proceso) → texto reescrito → insertado
 
 ## Cómo buildear
 
 ```bash
-make build                     # release + re-firma el binario (requerido)
+make build                     # swift build + Metal shaders + re-firma el binario
 make run                       # build + ejecutar
 .build/release/LocalVoice      # ejecutar sin re-buildear
+make bundle                    # crea LocalVoice.app en el directorio raíz
 ```
 
-El paso `codesign --force --sign -` después del link es obligatorio: sin él macOS 26 no
-reconoce el bundle ID embebido (`com.localvoice.app`) y el NSStatusItem no aparece.
-Usar siempre `make build` en lugar de `swift build -c release` solo.
+`make build` hace tres cosas en orden:
+1. `swift build -c release` — compila Swift
+2. `scripts/build-metallib.sh` — compila shaders Metal de MLX → `.build/release/mlx.metallib`
+3. `codesign --force --sign -` — firma ad-hoc (obligatorio para que macOS reconozca el bundle ID)
 
-Requiere CLT o Xcode instalado. macOS 14+ (Sonoma). Apple Silicon recomendado.
+**Requiere Xcode instalado** (no solo CLT) porque la compilación de Metal shaders usa el toolchain
+de Xcode (`xcrun metal`). macOS 14+ (Sonoma). Apple Silicon recomendado.
+
+### Metal shaders
+
+MLX necesita `mlx.metallib` colocado junto al binario. El script `scripts/build-metallib.sh`
+compila los shaders pre-generados de mlx-swift desde:
+```
+.build/checkouts/mlx-swift/Source/Cmlx/mlx-generated/metal/*.metal
+```
+Tiene chequeo de staleness: si el metallib ya existe y es más nuevo que todos los `.metal`,
+se saltea la compilación.
 
 ## Estructura de módulos
 
@@ -34,22 +47,24 @@ Sources/LocalVoice/
 │   ├── LocalVoiceApp.swift       # @main, NSApplication.accessory (sin Dock icon)
 │   ├── AppDelegate.swift         # orquesta el pipeline completo
 │   ├── AppSettings.swift         # UserDefaults-backed, ObservableObject
-│   └── DeviceCapability.swift    # detecta chip/RAM, recomienda modelo Ollama
+│   └── DeviceCapability.swift    # detecta chip/RAM, recomienda modelo MLX
 ├── Audio/
 │   ├── AudioCapture.swift        # AVAudioEngine → Float32 16kHz mono
-│   └── HotkeyManager.swift       # CGEventTap en Right Option key
+│   └── HotkeyManager.swift       # CGEventTap en Right Command key
 ├── Transcription/
 │   └── TranscriptionEngine.swift # wrapper WhisperKit, retorna TranscriptionOutput {text, language}
 ├── LLM/
-│   └── OllamaClient.swift        # HTTP client localhost:11434
+│   ├── MLXClient.swift           # inferencia en proceso vía MLXLLM + ChatSession
+│   ├── MLXModelCatalog.swift     # lista curada de modelos Qwen3.5 con metadata
+│   └── MLXModelManager.swift     # descarga, progreso, borrado de modelos MLX
 ├── Persistence/
 │   └── TranscriptionRecord.swift # @Model SwiftData — historial local
 ├── TextInsertion/
 │   └── TextInserter.swift        # AXUIElement (tier 1) + pasteboard (tier 2)
 └── UI/
-    ├── MenuBarManager.swift       # NSStatusItem + NSMenu
+    ├── MenuBarManager.swift       # NSStatusItem + NSMenu + "Check for Updates…"
     ├── RecordingOverlayWindow.swift # overlay flotante SwiftUI animado
-    ├── SettingsWindow.swift       # NSWindow + SwiftUI Form
+    ├── SettingsWindow.swift       # NSWindow + SwiftUI Form (con download UI de modelos)
     └── HistoryWindow.swift        # ventana historial con stats y export CSV
 ```
 
@@ -63,21 +78,42 @@ HotkeyManager.onHotkeyDown
 HotkeyManager.onHotkeyUp
   → AudioCapture.stopRecording() → [Float] (PCM 16kHz)
   → RecordingOverlayWindow.hide()
-  → TranscriptionEngine.transcribe([Float]) → String
-  → [si Modo 2] OllamaClient.rewrite(String) → String
+  → TranscriptionEngine.transcribe([Float]) → TranscriptionOutput
+  → [si Modo 2] MLXClient.rewrite(transcript:prompt:appContext:detectedLanguage:) → String
   → TextInserter.insert(String)
 ```
 
-## Modelo Ollama por defecto
+## Modelo MLX por defecto
 
-`DeviceCapability.recommendedGemmaModel` elige automáticamente:
+`DeviceCapability.recommendedMLXModel` elige automáticamente según chip y RAM:
 
-| Dispositivo | Modelo | Por qué |
+| Dispositivo | Modelo | RAM ~necesaria |
 |---|---|---|
-| M1/M2 o <16GB RAM | `gemma4:e2b` | Más rápido, menor consumo |
-| M3/M4 o ≥16GB RAM | `gemma4:e4b` | Mejor calidad, el hardware lo aguanta |
+| M4, 32GB+ | `mlx-community/Qwen3.5-27B-4bit` | ~16 GB |
+| M3/M4, 16GB+ | `mlx-community/Qwen3.5-9B-MLX-4bit` | ~5.5 GB |
+| Cualquiera, 16GB+ | `mlx-community/Qwen3.5-4B-MLX-4bit` | ~3 GB |
+| Default (M1/M2 8GB) | `mlx-community/Qwen3.5-2B-MLX-4bit` | ~1.5 GB |
 
-Para instalar: `ollama pull gemma4:e2b` o `ollama pull gemma4:e4b`
+Los modelos se descargan la primera vez que se usa el modo Refine. Se guardan en:
+`~/Library/Application Support/LocalVoice/MLXModels/models/<org>/<model>/`
+
+**Qwen3 no-think mode:** se agrega `/no_think` al prompt para desactivar chain-of-thought,
+lo que reduce la latencia significativamente en tareas cortas de reescritura.
+
+Para cambiar el modelo recomendado: modificar `DeviceCapability.recommendedMLXModel`.
+
+## MLXClient — detalles de implementación
+
+`MLXClient` usa un bridge manual (sin macros de `MLXHuggingFace`) porque el paquete
+`HuggingFace` no es compatible con este setup:
+
+- `HubDownloader`: implementa `MLXLMCommon.Downloader` via `Hub.HubApi.snapshot()`
+- `TransformersTokenizerLoader`: implementa `MLXLMCommon.TokenizerLoader` via `AutoTokenizer.from(modelFolder:)`
+- `TokenizerBridge`: adapta `Tokenizers.Tokenizer` → `MLXLMCommon.Tokenizer`
+  - Importante: `decode(tokenIds:)` en MLXLMCommon vs `decode(tokens:)` en Tokenizers
+
+La sesión de chat se crea nueva por cada request (o se llama `session.clear()`) para evitar
+que el historial acumule contexto entre transcripciones distintas.
 
 ## Inserción de texto — reglas importantes
 
@@ -92,8 +128,9 @@ Para instalar: `ollama pull gemma4:e2b` o `ollama pull gemma4:e4b`
 
 - **Main thread:** UI, NSApplication, menú
 - **AVAudioEngine callback:** solo acumula samples en `[Float]`, nada más
-- **Task { }:** transcripción + HTTP Ollama (structured concurrency)
+- **Task { }:** transcripción + inferencia MLX (structured concurrency)
 - **MainActor.run { }:** toda actualización de UI o inserción de texto
+- **MLXModelManager:** `@MainActor` — actualiza `@Published` desde async download tasks
 
 ## Permisos requeridos
 
@@ -112,18 +149,22 @@ Para instalar: `ollama pull gemma4:e2b` o `ollama pull gemma4:e4b`
 ## Lo que NO hacer
 
 - No insertar texto en `kAXSecureTextFieldRole` (campos de contraseña)
-- No bloquear el main thread con transcripción o HTTP
+- No bloquear el main thread con transcripción o inferencia LLM
 - No agregar dependencias sin revisar si Apple Silicon las soporta nativamente
 - No cambiar el modelo de Whisper en caliente sin llamar `loadModel()` de nuevo
 - No usar `UserDefaults` fuera de `AppSettings`
+- No usar el paquete `MLXHuggingFace` (requiere `HuggingFace` package incompatible); usar el bridge manual en `MLXClient.swift`
 
 ## Tareas comunes
 
 **Cambiar el modelo Whisper por defecto:**
 Modificar `AppSettings.init()` → campo `whisperModel`.
 
-**Agregar un nuevo modelo Ollama recomendado:**
-Modificar `DeviceCapability.swift` → `recommendedGemmaModel` y la tabla de `shouldUseHeavierModel`.
+**Agregar un nuevo modelo MLX al catálogo:**
+Modificar `MLXModelCatalog.swift` → array `models`. Verificar tamaño real en HuggingFace antes de agregar.
+
+**Cambiar el modelo MLX recomendado por tier:**
+Modificar `DeviceCapability.recommendedMLXModel` en `DeviceCapability.swift`.
 
 **Cambiar el hotkey:**
 `HotkeyManager.monitoredKeyCode` — el keycode actual es `0x36` (Right Command).
@@ -133,35 +174,59 @@ Modificar `DeviceCapability.swift` → `recommendedGemmaModel` y la tabla de `sh
 2. Agregar case en `AppDelegate.stopAndProcess()`
 3. Agregar item al menú en `MenuBarManager.buildMenu()`
 
+**Crear un DMG firmado para distribución:**
+```bash
+./scripts/build-release.sh 1.0.0
+# Requiere: Developer ID cert en keychain, notarytool profile, create-dmg
+```
+
+## Distribución
+
+La app se distribuye como DMG firmado + notarizado via GitHub Releases.
+No requiere App Store. La URL del appcast de Sparkle está en `Info.plist` → `SUFeedURL`.
+`SUEnableAutomaticChecks` está en `false` hasta que haya un appcast real publicado.
+
+Para firmar con Developer ID real:
+1. Exportar `DEVELOPER_ID_IDENTITY` con el nombre del certificado
+2. Configurar `xcrun notarytool store-credentials notarytool`
+3. Correr `./scripts/build-release.sh <version>`
+
 ## Roadmap
 
-### Fase 1 — Mejoras UX ✓ completada
-- [x] Overlay muestra estado "transcribiendo" tras soltar el hotkey
-- [x] Cancelar transcripción en curso si el usuario vuelve a presionar el hotkey
-- [x] Errores de Ollama visibles en la UI (overlay auto-dismiss 3s, sin modal bloqueante)
-- [x] Hotkey: docs corregidos (Right Command `0x36`, no Right Option)
+### Fases anteriores ✓ completadas
+- [x] **Fase 1 UX:** overlay de estado, cancelación con hotkey, errores visibles
+- [x] **Fase 2 LLM:** pipeline llmRewrite end-to-end (originalmente con Ollama/Gemma4)
+- [x] **Fase 3 DB:** SwiftData + historial + métricas + export CSV
 
-### Fase 2 — Post-procesado LLM ✓ completada
-- [x] Pipeline llmRewrite funcionando end-to-end con Ollama + Gemma4
-- [x] Overlay diferenciado: "Transcribiendo…" → "Mejorando…" con preview del transcript
-- [x] Nombres de modelos corregidos (`gemma4:e2b` / `gemma4:e4b`)
-- [x] Timeout Ollama extendido (120s request / 300s resource)
+### Fase 4 — MLX + Distribución ✓ completada (branch: feature/mlx-distribution)
+- [x] Reemplazar Ollama con MLX en proceso (MLXLLM + ChatSession)
+- [x] `MLXModelCatalog` — catálogo de modelos Qwen3.5 con metadata de RAM/tamaño
+- [x] `MLXModelManager` — descarga con progreso, borrado, chequeo de descarga
+- [x] Settings: lista de modelos MLX con botón de descarga, barra de progreso, badge "Recommended"
+- [x] Settings: lista de modelos Whisper con indicador de estado de descarga
+- [x] Sparkle auto-update integrado (`SPUStandardUpdaterController`, "Check for Updates…" en menú)
+- [x] `make bundle` → crea `LocalVoice.app` listo para Finder
+- [x] `scripts/build-release.sh` → firma + notariza + DMG + instrucciones appcast
+- [x] `scripts/build-metallib.sh` → compila shaders Metal de MLX al hacer `make build`
+- [x] Entitlements para JIT de Metal (`LocalVoice.entitlements`)
 
-### Fase 3 — Base de datos local + historial + métricas ✓ completada
-- [x] SwiftData para persistencia local (`~/Library/Application Support/LocalVoice/`)
-- [x] `TranscriptionRecord` guarda: timestamp, duración de audio, palabras, idioma detectado, app destino, modo, modelo Whisper, modelo Ollama, latencia Ollama
-- [x] Texto transcrito opt-in (default off) — configurable en Settings → Privacy
-- [x] Ventana History accesible desde el menú (⌘H): stats, lista de registros, export CSV
-- [x] Métricas en UI: total grabaciones, total palabras, WPM promedio (calculado sobre duración real del audio)
-
-### Fase 4 — Prompts avanzados con contexto (requiere Fase 3)
-> Implementar recién cuando la base de datos esté lista y se esté almacenando contexto.
+### Fase 5 — Prompts avanzados con contexto
+> Requiere que la rama feature/mlx-distribution esté mergeada a main.
 - [ ] Múltiples prompts configurables por el usuario (ej. "corregir", "resumir", "formalizar")
 - [ ] Shortcuts por prompt
-- [ ] Detección de la app activa para adaptar el prompt al contexto (ej. en Cursor: corregir nombres de variables del proyecto, entender terminología del codebase)
+- [ ] Detección de la app activa para adaptar el prompt al contexto (ej. en Cursor: terminología del proyecto)
 - [ ] El modelo recibe contexto de la app de destino antes de reescribir
+
+### Fase 6 — Distribución pública
+> Bloqueada en Apple Developer ID ($99/año, enrollment en developer.apple.com)
+- [ ] Enroll en Apple Developer Program
+- [ ] Configurar notarytool credentials
+- [ ] Publicar primer DMG firmado en GitHub Releases
+- [ ] Crear appcast.xml y actualizar `SUFeedURL` en Info.plist
+- [ ] Landing page con instrucciones de instalación
 
 ## Docs adicionales
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — diseño técnico completo con diagramas
 - [README.md](README.md) — guía de usuario e instalación
+- [docs/superpowers/specs/2026-04-23-distribution-llm-redesign-design.md](docs/superpowers/specs/2026-04-23-distribution-llm-redesign-design.md) — spec original del rediseño
