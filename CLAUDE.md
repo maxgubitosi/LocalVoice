@@ -192,10 +192,10 @@ To sign with a real Developer ID:
 - Sparkle auto-update integration
 - Signed + notarized DMG build pipeline
 
-### Next — Phase 5: Advanced Prompts with Context
-- [ ] Per-prompt keyboard shortcuts (assignable from UI)
-- [ ] Active app detection to adapt prompt to context (e.g. in Cursor: project terminology)
-- [ ] App context passed to MLXClient before rewriting
+### Done (continued)
+- User-defined prompts with per-prompt number shortcuts (`PromptStore`, `PromptsManagementView`)
+- Active app detection — app name captured at recording start, passed as context to MLXClient
+- Number shortcuts during recording: hold Right Command, press 1–9 to select a prompt by `keyNumber`
 
 ### Blocked — Phase 6: Public Distribution
 Blocked on Apple Developer ID ($99/year).
