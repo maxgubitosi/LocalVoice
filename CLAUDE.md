@@ -1,74 +1,75 @@
 # CLAUDE.md — LocalVoice
 
-Guía para agentes de IA que trabajen en este codebase.
+Guide for AI agents working in this codebase.
 
-## Qué es esto
+## What This Is
 
-App de menu bar para macOS que convierte voz a texto de forma completamente local.
-Sin cloud, sin suscripción. Todo el procesamiento corre localmente en el Mac.
+macOS menu bar app for local, private voice-to-text. No cloud, no subscription. All processing runs on-device.
 
-- **Hotkey modo hold:** mantener Right Command (⌘ derecho) → graba, soltar → transcribe
-- **Hotkey modo latch:** doble-tap Right Command → empieza a grabar, tap → para y transcribe
-- **Modo 1 (Direct):** audio → Whisper → texto insertado en la app activa
-- **Modo 2 (Refine):** audio → Whisper → MLX (Qwen3.5 en proceso) → texto reescrito → insertado
+- **Hold mode:** hold Right Command → record, release → transcribe
+- **Latch mode:** double-tap Right Command → start recording, tap → stop and transcribe
+- **Mode 1 (Direct):** audio → Whisper → text inserted into the active app
+- **Mode 2 (Refine):** audio → Whisper → MLX in-process (Qwen3.5) → rewritten text → inserted
 
-## Cómo buildear
+## Build & Run
 
 ```bash
-make build                     # swift build + Metal shaders + re-firma el binario
-make run                       # build + ejecutar
-.build/release/LocalVoice      # ejecutar sin re-buildear
-make bundle                    # crea LocalVoice.app en el directorio raíz
+make build                # swift build + Metal shaders + ad-hoc codesign
+make run                  # build + launch
+.build/release/LocalVoice # run without rebuilding
+make bundle               # create LocalVoice.app in the project root
 ```
 
-`make build` hace tres cosas en orden:
-1. `swift build -c release` — compila Swift
-2. `scripts/build-metallib.sh` — compila shaders Metal de MLX → `.build/release/mlx.metallib`
-3. `codesign --force --sign -` — firma ad-hoc (obligatorio para que macOS reconozca el bundle ID)
+`make build` runs three steps in order:
+1. `swift build -c release`
+2. `scripts/build-metallib.sh` — compile MLX Metal shaders → `.build/release/mlx.metallib`
+3. `codesign --force --sign -` — ad-hoc sign (required for macOS to recognize the bundle ID)
 
-**Requiere Xcode instalado** (no solo CLT) porque la compilación de Metal shaders usa el toolchain
-de Xcode (`xcrun metal`). macOS 14+ (Sonoma). Apple Silicon recomendado.
+**Requires full Xcode** (not just CLT) — Metal shader compilation uses `xcrun metal`. macOS 14+, Apple Silicon.
 
 ### Metal shaders
 
-MLX necesita `mlx.metallib` colocado junto al binario. El script `scripts/build-metallib.sh`
-compila los shaders pre-generados de mlx-swift desde:
+MLX requires `mlx.metallib` next to the binary. `scripts/build-metallib.sh` compiles the pre-generated shaders from mlx-swift:
 ```
 .build/checkouts/mlx-swift/Source/Cmlx/mlx-generated/metal/*.metal
 ```
-Tiene chequeo de staleness: si el metallib ya existe y es más nuevo que todos los `.metal`,
-se saltea la compilación.
+Staleness check: if the metallib exists and is newer than all `.metal` files, compilation is skipped.
 
-## Estructura de módulos
+## Module Structure
 
 ```
 Sources/LocalVoice/
 ├── App/
-│   ├── LocalVoiceApp.swift       # @main, NSApplication.accessory (sin Dock icon)
-│   ├── AppDelegate.swift         # orquesta el pipeline completo
-│   ├── AppSettings.swift         # UserDefaults-backed, ObservableObject
-│   └── DeviceCapability.swift    # detecta chip/RAM, recomienda modelo MLX
+│   ├── LocalVoiceApp.swift        # @main, NSApplication.accessory (no Dock icon)
+│   ├── AppDelegate.swift          # orchestrates the full pipeline
+│   ├── AppSettings.swift          # UserDefaults-backed, ObservableObject
+│   ├── Config.swift               # compile-time constants
+│   └── DeviceCapability.swift     # detects chip/RAM, recommends MLX model
 ├── Audio/
-│   ├── AudioCapture.swift        # AVAudioEngine → Float32 16kHz mono
-│   └── HotkeyManager.swift       # CGEventTap en Right Command key
+│   ├── AudioCapture.swift         # AVAudioEngine → Float32 16kHz mono
+│   └── HotkeyManager.swift        # CGEventTap on Right Command key
 ├── Transcription/
-│   └── TranscriptionEngine.swift # wrapper WhisperKit, retorna TranscriptionOutput {text, language}
+│   └── TranscriptionEngine.swift  # WhisperKit wrapper, returns TranscriptionOutput {text, language}
 ├── LLM/
-│   ├── MLXClient.swift           # inferencia en proceso vía MLXLLM + ChatSession
-│   ├── MLXModelCatalog.swift     # lista curada de modelos Qwen3.5 con metadata
-│   └── MLXModelManager.swift     # descarga, progreso, borrado de modelos MLX
+│   ├── MLXClient.swift            # in-process inference via MLXLLM + ChatSession
+│   ├── MLXModelCatalog.swift      # curated Qwen3.5 model list with RAM/size metadata
+│   ├── MLXModelManager.swift      # download, progress, deletion of MLX models
+│   ├── LLMPrompt.swift            # prompt model: name, text, optional shortcut
+│   └── PromptStore.swift          # persists and manages user-defined prompts
 ├── Persistence/
-│   └── TranscriptionRecord.swift # @Model SwiftData — historial local
+│   └── TranscriptionRecord.swift  # @Model SwiftData — local transcription history
 ├── TextInsertion/
-│   └── TextInserter.swift        # AXUIElement (tier 1) + pasteboard (tier 2)
+│   └── TextInserter.swift         # AXUIElement (tier 1) + pasteboard (tier 2)
 └── UI/
-    ├── MenuBarManager.swift       # NSStatusItem + NSMenu + "Check for Updates…"
-    ├── RecordingOverlayWindow.swift # overlay flotante SwiftUI animado
-    ├── SettingsWindow.swift       # NSWindow + SwiftUI Form (con download UI de modelos)
-    └── HistoryWindow.swift        # ventana historial con stats y export CSV
+    ├── MenuBarManager.swift        # NSStatusItem + NSMenu + "Check for Updates…"
+    ├── RecordingOverlayWindow.swift # animated floating SwiftUI overlay
+    ├── SettingsWindow.swift        # NSWindow + SwiftUI Form (model download UI)
+    ├── HistoryWindow.swift         # history window with stats and CSV export
+    ├── PromptsManagementView.swift # UI for creating/editing/deleting prompts
+    └── FirstRunView.swift          # first-run onboarding and model download flow
 ```
 
-## Pipeline de datos
+## Data Pipeline
 
 ```
 HotkeyManager.onHotkeyDown
@@ -79,154 +80,131 @@ HotkeyManager.onHotkeyUp
   → AudioCapture.stopRecording() → [Float] (PCM 16kHz)
   → RecordingOverlayWindow.hide()
   → TranscriptionEngine.transcribe([Float]) → TranscriptionOutput
-  → [si Modo 2] MLXClient.rewrite(transcript:prompt:appContext:detectedLanguage:) → String
+  → [if Mode 2] MLXClient.rewrite(transcript:prompt:appContext:detectedLanguage:) → String
   → TextInserter.insert(String)
 ```
 
-## Modelo MLX por defecto
+## Default MLX Model Selection
 
-`DeviceCapability.recommendedMLXModel` elige automáticamente según chip y RAM:
+`DeviceCapability.recommendedMLXModel` auto-selects based on chip and RAM:
 
-| Dispositivo | Modelo | RAM ~necesaria |
+| Device | Model | ~RAM required |
 |---|---|---|
-| M4, 32GB+ | `mlx-community/Qwen3.5-27B-4bit` | ~16 GB |
-| M3/M4, 16GB+ | `mlx-community/Qwen3.5-9B-MLX-4bit` | ~5.5 GB |
-| Cualquiera, 16GB+ | `mlx-community/Qwen3.5-4B-MLX-4bit` | ~3 GB |
-| Default (M1/M2 8GB) | `mlx-community/Qwen3.5-2B-MLX-4bit` | ~1.5 GB |
+| M4, 32 GB+ | `mlx-community/Qwen3.5-27B-4bit` | ~16 GB |
+| M3/M4, 16 GB+ | `mlx-community/Qwen3.5-9B-MLX-4bit` | ~5.5 GB |
+| Any, 16 GB+ | `mlx-community/Qwen3.5-4B-MLX-4bit` | ~3 GB |
+| Default (M1/M2 8 GB) | `mlx-community/Qwen3.5-2B-MLX-4bit` | ~1.5 GB |
 
-Los modelos se descargan la primera vez que se usa el modo Refine. Se guardan en:
+Models download on first use of Refine mode. Stored at:
 `~/Library/Application Support/LocalVoice/MLXModels/models/<org>/<model>/`
 
-**Qwen3 no-think mode:** se agrega `/no_think` al prompt para desactivar chain-of-thought,
-lo que reduce la latencia significativamente en tareas cortas de reescritura.
+**Qwen3 no-think mode:** `/no_think` is appended to the prompt to disable chain-of-thought, significantly reducing latency for short rewrite tasks.
 
-Para cambiar el modelo recomendado: modificar `DeviceCapability.recommendedMLXModel`.
+## MLXClient — Implementation Details
 
-## MLXClient — detalles de implementación
+`MLXClient` uses a manual bridge (no `MLXHuggingFace` macros) because the `HuggingFace` package is incompatible with this setup:
 
-`MLXClient` usa un bridge manual (sin macros de `MLXHuggingFace`) porque el paquete
-`HuggingFace` no es compatible con este setup:
+- `HubDownloader`: implements `MLXLMCommon.Downloader` via `Hub.HubApi.snapshot()`
+- `TransformersTokenizerLoader`: implements `MLXLMCommon.TokenizerLoader` via `AutoTokenizer.from(modelFolder:)`
+- `TokenizerBridge`: adapts `Tokenizers.Tokenizer` → `MLXLMCommon.Tokenizer`
+  - Key difference: `decode(tokenIds:)` in MLXLMCommon vs `decode(tokens:)` in Tokenizers
 
-- `HubDownloader`: implementa `MLXLMCommon.Downloader` via `Hub.HubApi.snapshot()`
-- `TransformersTokenizerLoader`: implementa `MLXLMCommon.TokenizerLoader` via `AutoTokenizer.from(modelFolder:)`
-- `TokenizerBridge`: adapta `Tokenizers.Tokenizer` → `MLXLMCommon.Tokenizer`
-  - Importante: `decode(tokenIds:)` en MLXLMCommon vs `decode(tokens:)` en Tokenizers
+A new chat session is created per request (or `session.clear()` is called) to prevent context from accumulating across separate transcriptions.
 
-La sesión de chat se crea nueva por cada request (o se llama `session.clear()`) para evitar
-que el historial acumule contexto entre transcripciones distintas.
+## Text Insertion — Security Invariant
 
-## Inserción de texto — reglas importantes
+`TextInserter` has two tiers:
 
-`TextInserter` tiene dos tiers:
+1. **AXUIElement** — direct, no clipboard. Checks `kAXSecureTextFieldRole` and **never inserts into password fields**.
+2. **NSPasteboard + Cmd+V** — universal fallback. Saves and restores clipboard after 500 ms.
 
-1. **AXUIElement** — directo, sin tocar el clipboard. Verifica `kAXSecureTextFieldRole` y **no inserta en campos de contraseña**.
-2. **NSPasteboard + Cmd+V** — fallback universal. Guarda y restaura el clipboard después de 500ms.
-
-**Nunca saltear la verificación de secure text field.** Es un invariante de seguridad.
+**Never skip the secure text field check.** This is a hard security invariant.
 
 ## Threading
 
-- **Main thread:** UI, NSApplication, menú
-- **AVAudioEngine callback:** solo acumula samples en `[Float]`, nada más
-- **Task { }:** transcripción + inferencia MLX (structured concurrency)
-- **MainActor.run { }:** toda actualización de UI o inserción de texto
-- **MLXModelManager:** `@MainActor` — actualiza `@Published` desde async download tasks
+- **Main thread:** UI, NSApplication, menu
+- **AVAudioEngine callback:** only accumulates samples into `[Float]`, nothing else
+- **`Task { }`:** transcription + MLX inference (structured concurrency)
+- **`MainActor.run { }`:** all UI updates and text insertion
+- **`MLXModelManager`:** `@MainActor` — updates `@Published` from async download tasks
 
-## Permisos requeridos
+## Conventions
 
-- `NSMicrophoneUsageDescription` — grabar audio
-- `NSAccessibilityUsageDescription` — insertar texto vía AX
-- `NSInputMonitoringUsageDescription` — detectar hotkey global
+- No comments unless the WHY is non-obvious
+- No error handling for cases that cannot occur
+- No abstractions without a concrete need
+- `async/await` for all async work; callbacks only where AVAudioEngine requires it
+- Files organized by functional module, not by type (no `Models/`, `Protocols/` folders)
 
-## Convenciones
+## Hard Rules
 
-- Sin comentarios salvo que el WHY sea no obvio
-- No agregar manejo de errores para casos que no pueden ocurrir
-- No introducir abstracciones sin necesidad concreta
-- `async/await` para todo lo asíncrono, no callbacks salvo AVAudioEngine
-- Archivos por módulo funcional, no por tipo (no carpeta `Models/`, `Protocols/`, etc.)
+- Never insert text into `kAXSecureTextFieldRole` (password fields)
+- Never block the main thread with transcription or LLM inference
+- Never add dependencies without verifying Apple Silicon native support
+- Never hot-swap the Whisper model without calling `loadModel()` again
+- Never use `UserDefaults` outside of `AppSettings`
+- Never use the `MLXHuggingFace` package (requires the incompatible `HuggingFace` package) — use the manual bridge in `MLXClient.swift`
 
-## Lo que NO hacer
+## Common Tasks
 
-- No insertar texto en `kAXSecureTextFieldRole` (campos de contraseña)
-- No bloquear el main thread con transcripción o inferencia LLM
-- No agregar dependencias sin revisar si Apple Silicon las soporta nativamente
-- No cambiar el modelo de Whisper en caliente sin llamar `loadModel()` de nuevo
-- No usar `UserDefaults` fuera de `AppSettings`
-- No usar el paquete `MLXHuggingFace` (requiere `HuggingFace` package incompatible); usar el bridge manual en `MLXClient.swift`
+**Change the default Whisper model:**
+Modify `AppSettings.init()` → `whisperModel` field.
 
-## Tareas comunes
+**Add a new MLX model to the catalog:**
+Modify `MLXModelCatalog.swift` → `models` array. Verify the actual size on HuggingFace before adding.
 
-**Cambiar el modelo Whisper por defecto:**
-Modificar `AppSettings.init()` → campo `whisperModel`.
+**Change the recommended MLX model by tier:**
+Modify `DeviceCapability.recommendedMLXModel` in `DeviceCapability.swift`.
 
-**Agregar un nuevo modelo MLX al catálogo:**
-Modificar `MLXModelCatalog.swift` → array `models`. Verificar tamaño real en HuggingFace antes de agregar.
+**Change the hotkey:**
+`HotkeyManager.monitoredKeyCode` — current keycode is `0x36` (Right Command).
 
-**Cambiar el modelo MLX recomendado por tier:**
-Modificar `DeviceCapability.recommendedMLXModel` en `DeviceCapability.swift`.
+**Add a new mode (e.g. summarize):**
+1. Add case to `AppMode` in `AppSettings.swift`
+2. Add case in `AppDelegate.stopAndProcess()`
+3. Add menu item in `MenuBarManager.buildMenu()`
 
-**Cambiar el hotkey:**
-`HotkeyManager.monitoredKeyCode` — el keycode actual es `0x36` (Right Command).
-
-**Agregar un modo nuevo (ej. resumen):**
-1. Agregar case a `AppMode` en `AppSettings.swift`
-2. Agregar case en `AppDelegate.stopAndProcess()`
-3. Agregar item al menú en `MenuBarManager.buildMenu()`
-
-**Crear un DMG firmado para distribución:**
+**Create a signed DMG for distribution:**
 ```bash
 ./scripts/build-release.sh 1.0.0
-# Requiere: Developer ID cert en keychain, notarytool profile, create-dmg
+# Requires: Developer ID cert in keychain, notarytool profile, create-dmg
 ```
 
-## Distribución
+## Distribution
 
-La app se distribuye como DMG firmado + notarizado via GitHub Releases.
-No requiere App Store. La URL del appcast de Sparkle está en `Info.plist` → `SUFeedURL`.
-`SUEnableAutomaticChecks` está en `false` hasta que haya un appcast real publicado.
+The app ships as a signed + notarized DMG via GitHub Releases. No App Store.
+Sparkle appcast URL is in `Info.plist` → `SUFeedURL`. `SUEnableAutomaticChecks` is `false` until a real appcast is published.
 
-Para firmar con Developer ID real:
-1. Exportar `DEVELOPER_ID_IDENTITY` con el nombre del certificado
-2. Configurar `xcrun notarytool store-credentials notarytool`
-3. Correr `./scripts/build-release.sh <version>`
+To sign with a real Developer ID:
+1. Export `DEVELOPER_ID_IDENTITY` with the certificate name
+2. Set up `xcrun notarytool store-credentials notarytool`
+3. Run `./scripts/build-release.sh <version>`
 
 ## Roadmap
 
-### Fases anteriores ✓ completadas
-- [x] **Fase 1 UX:** overlay de estado, cancelación con hotkey, errores visibles
-- [x] **Fase 2 LLM:** pipeline llmRewrite end-to-end (originalmente con Ollama/Gemma4)
-- [x] **Fase 3 DB:** SwiftData + historial + métricas + export CSV
+### Done
+- Direct transcription (Whisper / WhisperKit, Apple Neural Engine)
+- LLM rewrite mode (MLX in-process, Qwen3.5, auto-download)
+- In-app model management (download, progress, deletion) for both Whisper and MLX
+- Transcription history with stats and CSV export (SwiftData)
+- Hold and latch hotkey modes
+- User-defined prompts with shortcuts (`PromptStore`, `PromptsManagementView`)
+- Sparkle auto-update integration
+- Signed + notarized DMG build pipeline
 
-### Fase 4 — MLX + Distribución ✓ completada (branch: feature/mlx-distribution)
-- [x] Reemplazar Ollama con MLX en proceso (MLXLLM + ChatSession)
-- [x] `MLXModelCatalog` — catálogo de modelos Qwen3.5 con metadata de RAM/tamaño
-- [x] `MLXModelManager` — descarga con progreso, borrado, chequeo de descarga
-- [x] Settings: lista de modelos MLX con botón de descarga, barra de progreso, badge "Recommended"
-- [x] Settings: lista de modelos Whisper con indicador de estado de descarga
-- [x] Sparkle auto-update integrado (`SPUStandardUpdaterController`, "Check for Updates…" en menú)
-- [x] `make bundle` → crea `LocalVoice.app` listo para Finder
-- [x] `scripts/build-release.sh` → firma + notariza + DMG + instrucciones appcast
-- [x] `scripts/build-metallib.sh` → compila shaders Metal de MLX al hacer `make build`
-- [x] Entitlements para JIT de Metal (`LocalVoice.entitlements`)
+### Next — Phase 5: Advanced Prompts with Context
+- [ ] Per-prompt keyboard shortcuts (assignable from UI)
+- [ ] Active app detection to adapt prompt to context (e.g. in Cursor: project terminology)
+- [ ] App context passed to MLXClient before rewriting
 
-### Fase 5 — Prompts avanzados con contexto
-> Requiere que la rama feature/mlx-distribution esté mergeada a main.
-- [ ] Múltiples prompts configurables por el usuario (ej. "corregir", "resumir", "formalizar")
-- [ ] Shortcuts por prompt
-- [ ] Detección de la app activa para adaptar el prompt al contexto (ej. en Cursor: terminología del proyecto)
-- [ ] El modelo recibe contexto de la app de destino antes de reescribir
+### Blocked — Phase 6: Public Distribution
+Blocked on Apple Developer ID ($99/year).
+- [ ] Enroll in Apple Developer Program
+- [ ] Publish first signed DMG to GitHub Releases
+- [ ] Create `appcast.xml` and update `SUFeedURL` in `Info.plist`
+- [ ] Landing page
 
-### Fase 6 — Distribución pública
-> Bloqueada en Apple Developer ID ($99/año, enrollment en developer.apple.com)
-- [ ] Enroll en Apple Developer Program
-- [ ] Configurar notarytool credentials
-- [ ] Publicar primer DMG firmado en GitHub Releases
-- [ ] Crear appcast.xml y actualizar `SUFeedURL` en Info.plist
-- [ ] Landing page con instrucciones de instalación
+## Additional Docs
 
-## Docs adicionales
-
-- [ARCHITECTURE.md](ARCHITECTURE.md) — diseño técnico completo con diagramas
-- [README.md](README.md) — guía de usuario e instalación
-- [docs/superpowers/specs/2026-04-23-distribution-llm-redesign-design.md](docs/superpowers/specs/2026-04-23-distribution-llm-redesign-design.md) — spec original del rediseño
+- [ARCHITECTURE.md](ARCHITECTURE.md) — full technical design with diagrams
+- [README.md](README.md) — user guide and installation
