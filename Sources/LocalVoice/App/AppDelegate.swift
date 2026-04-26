@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var recordingOverlay: RecordingOverlayWindow!
     private var historyWindow: HistoryWindowController?
     private var settingsWindow: SettingsWindowController?
+    private var firstRunWindow: FirstRunWindowController?
     private var cancellables = Set<AnyCancellable>()
 
     private var modelContainer: ModelContainer?
@@ -96,6 +97,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.hotkeyManager.monitoredKeyCode = CGKeyCode(keyCode)
             }
             .store(in: &cancellables)
+
+        if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
+            showFirstRunWindow()
+        }
+    }
+
+    private func showFirstRunWindow() {
+        let mlxModelID = appSettings.llmModel
+        let whisperModel = appSettings.whisperModel
+        firstRunWindow = FirstRunWindowController(
+            transcriptionEngine: transcriptionEngine,
+            mlxModelManager: mlxModelManager,
+            whisperModel: whisperModel,
+            mlxModelID: mlxModelID,
+            onComplete: { [weak self] in
+                UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+                self?.firstRunWindow?.close()
+                self?.firstRunWindow = nil
+            }
+        )
+        firstRunWindow?.showWindow(nil)
+
+        Task {
+            if DeviceCapability.physicalMemoryGB >= 16 {
+                async let whisperLoad: Void = await transcriptionEngine.loadModel(named: whisperModel)
+                async let mlxDownload: Void = try await mlxModelManager.downloadModel(mlxModelID)
+                _ = try await (whisperLoad, mlxDownload)
+            } else {
+                await transcriptionEngine.loadModel(named: whisperModel)
+                try? await mlxModelManager.downloadModel(mlxModelID)
+            }
+        }
     }
 
     private func requestPermissions() {
@@ -152,6 +185,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     guard !output.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                         Logger.pipeline.info("Empty transcript — skipping")
                         await MainActor.run { self.recordingOverlay.hide() }
+                        return
+                    }
+
+                    let isMLXDownloaded = await self.mlxModelManager.isDownloaded(self.appSettings.llmModel)
+                    if self.appSettings.mode == .llmRewrite && !self.mlxClient.isLLMModelLoaded
+                        && !isMLXDownloaded {
+                        await MainActor.run {
+                            self.recordingOverlay.showError("LLM model not downloaded. Open Settings to download it.")
+                        }
                         return
                     }
 
