@@ -30,10 +30,11 @@
     <nav class="mk-nav-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
+      <a href="#install">Install</a>
       <a href="#privacy">Privacy</a>
       <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
     </nav>
-    <a class="mk-nav-cta" href="https://github.com/maxgubitosi/LocalVoice/releases">&#8595; Download</a>
+    <a class="mk-nav-cta" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>&#8595; Download</a>
   </div>
 </header>
 
@@ -55,11 +56,11 @@
   </p>
 
   <div class="mk-cta-row">
-    <a href="https://github.com/maxgubitosi/LocalVoice/releases" class="mk-cta mk-cta-primary">&#8595; Download for macOS</a>
+    <a href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" class="mk-cta mk-cta-primary" download>&#8595; Download for macOS</a>
     <a href="https://github.com/maxgubitosi/LocalVoice" class="mk-cta mk-cta-secondary">View on GitHub</a>
   </div>
 
-  <div class="mk-cta-meta">Apple Silicon &middot; macOS 14 Sonoma+</div>
+  <div class="mk-cta-meta">Apple Silicon &middot; macOS 14 Sonoma+ &middot; <a href="#install" class="mk-cta-meta-link">First launch needs one Terminal command &#8595;</a></div>
 
   <!-- Hero stage: dark desktop scene -->
   <div class="mk-hero-stage">
@@ -227,6 +228,63 @@
     </div>
 
   </div>
+</section>
+
+<!-- ====== Install ====== -->
+<section id="install" class="mk-section mk-page">
+  <div class="mk-section-head">
+    <div class="mk-tag">Install</div>
+    <h2 class="mk-h2">Three steps. About 30 seconds.</h2>
+    <p class="mk-section-sub">
+      LocalVoice is signed ad-hoc (no paid Apple Developer ID yet), so macOS quarantines it on download.
+      Strip the flag once and the hotkey works cleanly.
+    </p>
+  </div>
+
+  <div class="mk-steps">
+
+    <div class="mk-step">
+      <div class="mk-step-num">01</div>
+      <div class="mk-step-h">Download &amp; unzip</div>
+      <div class="mk-step-p">
+        Click <strong>Download for macOS</strong> above, then unzip <code>LocalVoice.zip</code> in Finder.
+      </div>
+      <div class="mk-step-vis">
+        <span>LocalVoice.zip &#8594; LocalVoice.app</span>
+      </div>
+    </div>
+
+    <div class="mk-step">
+      <div class="mk-step-num">02</div>
+      <div class="mk-step-h">Move to Applications &amp; clear quarantine</div>
+      <div class="mk-step-p">
+        Drag <code>LocalVoice.app</code> into <code>/Applications</code>. Then open
+        <strong>Terminal</strong> and paste:
+      </div>
+      <div class="mk-step-vis mk-step-vis-code">
+        <code>xattr -dr com.apple.quarantine /Applications/LocalVoice.app</code>
+      </div>
+    </div>
+
+    <div class="mk-step">
+      <div class="mk-step-num">03</div>
+      <div class="mk-step-h">Open &amp; grant permissions</div>
+      <div class="mk-step-p">
+        Launch the app. In <em>System Settings &#8594; Privacy &amp; Security</em>, enable
+        <strong>Microphone</strong>, <strong>Accessibility</strong>, and <strong>Input Monitoring</strong>.
+      </div>
+      <div class="mk-step-vis">
+        <span>Right &#8984; ready</span>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="mk-install-note">
+    Already opened it before clearing quarantine? In <em>System Settings &#8594; Privacy &amp; Security</em>,
+    remove the existing <strong>LocalVoice</strong> entries from <em>Input Monitoring</em> and <em>Accessibility</em>,
+    run the command above, then relaunch and grant the permissions again.
+  </p>
 </section>
 
 <!-- ====== Privacy ====== -->

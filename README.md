@@ -19,9 +19,23 @@ A free macOS app for local, private voice-to-text. 100% local, no cloud, no APIs
 
 ## Download
 
-Grab the latest `LocalVoice.zip` from [GitHub Releases](https://github.com/maxgubitosi/LocalVoice/releases), unzip, and drag `LocalVoice.app` to your Applications folder.
+[**Download `LocalVoice.zip` →**](https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip) (or browse all [releases](https://github.com/maxgubitosi/LocalVoice/releases))
 
-> **First launch:** right-click the app → **Open** the first time (macOS Gatekeeper requires this for unsigned apps). After that, it opens normally.
+### First launch (one-time setup)
+
+LocalVoice is signed ad-hoc (no paid Apple Developer ID), so macOS quarantines the bundle on download. You need to clear that flag **before** opening the app — otherwise macOS runs it from a randomized translocated path and your Input Monitoring / Accessibility grants don't stick, so the Right ⌘ hotkey will silently do nothing.
+
+1. Unzip `LocalVoice.zip`.
+2. Drag `LocalVoice.app` into `/Applications`.
+3. Open **Terminal** and run:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/LocalVoice.app
+   ```
+
+4. Open the app. In **System Settings → Privacy & Security**, enable **Microphone**, **Accessibility**, and **Input Monitoring** for LocalVoice.
+
+> **Already opened it before step 3?** Remove the existing `LocalVoice` entries from *Input Monitoring* and *Accessibility* in System Settings, run the `xattr` command, then relaunch and grant the permissions again.
 
 ## Requirements
 

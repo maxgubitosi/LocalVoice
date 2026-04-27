@@ -253,6 +253,11 @@ a { color: inherit; }
 .mk-cta-meta {
   font-size: 12px; color: var(--fg-tertiary); font-family: var(--font-mono);
 }
+.mk-cta-meta-link {
+  color: var(--accent); text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+}
+.mk-cta-meta-link:hover { color: var(--accent-hover); }
 
 /* Hero stage */
 .mk-hero-stage {
@@ -378,6 +383,34 @@ a { color: inherit; }
 .mk-step-vis-dark {
   background: linear-gradient(180deg, #2a2a2c, #0f0f10);
   border-color: rgba(255,255,255,0.08);
+}
+.mk-step-vis-code {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #1c1c1e, #0f0f10);
+  border-color: rgba(255,255,255,0.08);
+  height: auto; min-height: 100px;
+}
+.mk-step-vis-code code {
+  font-family: var(--font-mono); font-size: 12px;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.55; text-align: left;
+  user-select: all; -webkit-user-select: all;
+  word-break: break-all;
+  display: block; width: 100%;
+}
+
+.mk-install-note {
+  margin-top: 24px;
+  font-size: 13px; color: var(--fg-secondary);
+  text-align: center; line-height: 1.55;
+  max-width: 64ch; margin-left: auto; margin-right: auto;
+}
+.mk-step code,
+.mk-install-note code {
+  font-family: var(--font-mono); font-size: 0.92em;
+  background: var(--bg-control);
+  padding: 1px 6px; border-radius: var(--r-xs);
+  color: var(--fg-primary);
 }
 
 /* ---- Privacy callout ---- */

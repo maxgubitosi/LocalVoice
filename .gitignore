@@ -48,6 +48,10 @@ Tests/
 # Ignore all .m4a files
 *.m4a
 
+# Build artifacts
+LocalVoice.app/
+LocalVoice.zip
+
 # Git worktrees
 .worktrees/.superpowers/
 
