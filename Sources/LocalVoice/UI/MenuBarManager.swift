@@ -45,8 +45,8 @@ final class MenuBarManager: NSObject {
     func setLoading(_ loading: Bool) {
         DispatchQueue.main.async {
             self.isLoading = loading
-            self.statusButton?.appearsDisabled = loading
             self.updateStatusIcon()
+            self.buildMenu()
         }
     }
 
@@ -54,6 +54,7 @@ final class MenuBarManager: NSObject {
         DispatchQueue.main.async {
             self.isRecording = recording
             self.updateStatusIcon()
+            self.buildMenu()
         }
     }
 
@@ -62,9 +63,24 @@ final class MenuBarManager: NSObject {
     private func buildMenu() {
         let menu = NSMenu()
 
+        let statusTitle: String
+        if hasMissingPermissions {
+            statusTitle = "LocalVoice - permissions required"
+        } else if isRecording {
+            statusTitle = "LocalVoice - recording"
+        } else if isLoading {
+            statusTitle = "LocalVoice - loading Whisper"
+        } else {
+            statusTitle = "LocalVoice - ready"
+        }
+        let statusHeaderItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
+        statusHeaderItem.isEnabled = false
+        menu.addItem(statusHeaderItem)
+        menu.addItem(.separator())
+
         if hasMissingPermissions {
             let permissionsWarning = NSMenuItem(
-                title: "⚠ Permissions required — open Settings…",
+                title: "Open Settings to finish permissions...",
                 action: #selector(settingsSelected),
                 keyEquivalent: ""
             )
@@ -74,7 +90,7 @@ final class MenuBarManager: NSObject {
         }
 
         // Mode
-        let modeItem = NSMenuItem(title: "Mode", action: nil, keyEquivalent: "")
+        let modeItem = NSMenuItem(title: "Mode: \(settings.mode.rawValue)", action: nil, keyEquivalent: "")
         let modeSubmenu = NSMenu()
 
         for mode in AppMode.allCases {
@@ -92,7 +108,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(modeItem)
 
         // Language
-        let langItem = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
+        let langItem = NSMenuItem(title: "Language: \(settings.transcriptionLanguage.displayName)", action: nil, keyEquivalent: "")
         let langSubmenu = NSMenu()
         for language in TranscriptionLanguage.allCases {
             let item = NSMenuItem(
@@ -109,7 +125,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(langItem)
 
         // Whisper model
-        let whisperItem = NSMenuItem(title: "Whisper Model", action: nil, keyEquivalent: "")
+        let whisperItem = NSMenuItem(title: "Whisper: \(TranscriptionEngine.displayName(for: settings.whisperModel))", action: nil, keyEquivalent: "")
         let whisperSubmenu = NSMenu()
         for model in TranscriptionEngine.availableModels {
             let item = NSMenuItem(
@@ -125,15 +141,34 @@ final class MenuBarManager: NSObject {
         whisperItem.submenu = whisperSubmenu
         menu.addItem(whisperItem)
 
+        // Refine model
+        let selectedRefineLabel = MLXModelCatalog.models.first { $0.id == settings.llmModel }?.displayName ?? settings.llmModel
+        let refineModelItem = NSMenuItem(title: "Refine Model: \(selectedRefineLabel)", action: nil, keyEquivalent: "")
+        let refineModelSubmenu = NSMenu()
+        for model in MLXModelCatalog.models {
+            let item = NSMenuItem(
+                title: model.displayName,
+                action: #selector(llmModelSelected(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = model.id
+            item.state = (model.id == settings.llmModel) ? .on : .off
+            refineModelSubmenu.addItem(item)
+        }
+        refineModelItem.submenu = refineModelSubmenu
+        menu.addItem(refineModelItem)
+
         // Prompt
-        let promptItem = NSMenuItem(title: "Prompt", action: nil, keyEquivalent: "")
+        let activePrompt = promptStore.activePrompt(id: settings.activePromptID)
+        let promptItem = NSMenuItem(title: "Prompt: \(activePrompt.name)", action: nil, keyEquivalent: "")
         let promptSubmenu = NSMenu()
         for p in promptStore.prompts {
-            let label = p.keyNumber.map { "\(p.name)  [\($0)]" } ?? p.name
+            let label = p.keyNumber.map { "\(p.name)  Right Command+\($0)" } ?? p.name
             let item = NSMenuItem(title: label, action: #selector(promptSelected(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = p.id
-            item.state = (p.id == settings.activePromptID) ? .on : .off
+            item.state = (p.id == activePrompt.id) ? .on : .off
             promptSubmenu.addItem(item)
         }
         promptItem.submenu = promptSubmenu
@@ -142,18 +177,18 @@ final class MenuBarManager: NSObject {
         menu.addItem(.separator())
 
         // History
-        let historyItem = NSMenuItem(title: "History…", action: #selector(historySelected), keyEquivalent: "h")
+        let historyItem = NSMenuItem(title: "History...", action: #selector(historySelected), keyEquivalent: "h")
         historyItem.target = self
         menu.addItem(historyItem)
 
         // Settings
-        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(settingsSelected), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(settingsSelected), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
         // Check for Updates
         if let updater = updaterController?.updater {
-            let updateItem = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+            let updateItem = NSMenuItem(title: "Check for Updates...", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
             updateItem.target = updaterController
             updateItem.isEnabled = updater.canCheckForUpdates
             menu.addItem(updateItem)
@@ -162,9 +197,17 @@ final class MenuBarManager: NSObject {
         menu.addItem(.separator())
 
         // Hotkey hint
-        let hotkeyHint = NSMenuItem(title: "Hold Right ⌘ to record", action: nil, keyEquivalent: "")
+        let hotkeyHint = NSMenuItem(title: "Hold Right Command to record", action: nil, keyEquivalent: "")
         hotkeyHint.isEnabled = false
         menu.addItem(hotkeyHint)
+
+        let promptHint = NSMenuItem(title: "While recording: press 1-9 to switch prompts", action: nil, keyEquivalent: "")
+        promptHint.isEnabled = false
+        menu.addItem(promptHint)
+
+        let localHint = NSMenuItem(title: "Speech and refinement stay on this Mac", action: nil, keyEquivalent: "")
+        localHint.isEnabled = false
+        menu.addItem(localHint)
 
         menu.addItem(.separator())
 
@@ -173,7 +216,7 @@ final class MenuBarManager: NSObject {
         quit.target = self
         menu.addItem(quit)
 
-        statusItem.menu = menu
+        self.statusItem.menu = menu
     }
 
     @objc private func modeSelected(_ sender: NSMenuItem) {
@@ -185,6 +228,12 @@ final class MenuBarManager: NSObject {
     @objc private func whisperModelSelected(_ sender: NSMenuItem) {
         guard let model = sender.representedObject as? String else { return }
         delegate?.whisperModelChanged(to: model)
+        rebuildMenuCheckmarks()
+    }
+
+    @objc private func llmModelSelected(_ sender: NSMenuItem) {
+        guard let model = sender.representedObject as? String else { return }
+        delegate?.llmModelChanged(to: model)
         rebuildMenuCheckmarks()
     }
 
@@ -240,9 +289,12 @@ final class MenuBarManager: NSObject {
         if hasMissingPermissions {
             symbolName = "exclamationmark.triangle.fill"
             description = "LocalVoice needs permissions"
+        } else if isLoading {
+            symbolName = "hourglass"
+            description = "LocalVoice is loading"
         } else if isRecording {
             symbolName = "waveform.circle.fill"
-            description = "Recording…"
+            description = "Recording"
         } else {
             symbolName = "waveform.circle"
             description = "LocalVoice"

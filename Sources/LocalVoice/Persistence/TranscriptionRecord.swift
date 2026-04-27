@@ -14,7 +14,15 @@ final class TranscriptionRecord {
     @Attribute(originalName: "ollamaModel") var llmModel: String?
     @Attribute(originalName: "ollamaLatencySeconds") var llmLatencySeconds: Double?
     var transcribedText: String?
+    var originalText: String?
+    var refinedText: String?
+    var transcriptionLatencySeconds: Double?
+    var processingLatencySeconds: Double?
     var promptName: String?
+
+    var finalText: String? {
+        transcribedText ?? refinedText ?? originalText
+    }
 
     init(
         timestamp: Date,
@@ -28,6 +36,10 @@ final class TranscriptionRecord {
         llmModel: String?,
         llmLatencySeconds: Double?,
         transcribedText: String?,
+        originalText: String? = nil,
+        refinedText: String? = nil,
+        transcriptionLatencySeconds: Double? = nil,
+        processingLatencySeconds: Double? = nil,
         promptName: String?
     ) {
         self.timestamp = timestamp
@@ -41,6 +53,10 @@ final class TranscriptionRecord {
         self.llmModel = llmModel
         self.llmLatencySeconds = llmLatencySeconds
         self.transcribedText = transcribedText
+        self.originalText = originalText
+        self.refinedText = refinedText
+        self.transcriptionLatencySeconds = transcriptionLatencySeconds
+        self.processingLatencySeconds = processingLatencySeconds
         self.promptName = promptName
     }
 }

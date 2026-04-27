@@ -168,13 +168,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
+            let processingStart = Date()
             self.currentPipelineTask = Task {
                 do {
                     Logger.pipeline.debug("Audio buffer: \(buffer.count) samples")
+                    let transcriptionStart = Date()
                     let output = try await self.transcriptionEngine.transcribe(
                         buffer: buffer,
                         language: self.appSettings.transcriptionLanguage.whisperCode
                     )
+                    let transcriptionLatency = Date().timeIntervalSince(transcriptionStart)
                     try Task.checkCancellation()
                     Logger.pipeline.debug("Detected language: \(output.language ?? "unknown")")
                     Logger.pipeline.debug("Transcript: '\(output.text)'")
@@ -229,10 +232,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let saveText = self.appSettings.saveTranscribedText
                     let detectedLanguage = output.language
                     let capturedLLMLatency = llmLatency
+                    let capturedTranscriptionLatency = transcriptionLatency
                     let audioDuration = Double(buffer.count) / 16000.0
                     let capturedPromptName: String? = mode == .llmRewrite ? activePrompt.name : nil
+                    let capturedOriginalText = saveText ? output.text : nil
+                    let capturedRefinedText = saveText && mode == .llmRewrite ? finalText : nil
+                    let capturedFinalText = saveText ? finalText : nil
 
                     await MainActor.run {
+                        let processingLatency = Date().timeIntervalSince(processingStart)
                         self.textInserter.insert(text: finalText)
                         self.recordingOverlay.hide()
 
@@ -249,7 +257,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 whisperModel: whisperModel,
                                 llmModel: mode == .llmRewrite ? llmModel : nil,
                                 llmLatencySeconds: capturedLLMLatency,
-                                transcribedText: saveText ? finalText : nil,
+                                transcribedText: capturedFinalText,
+                                originalText: capturedOriginalText,
+                                refinedText: capturedRefinedText,
+                                transcriptionLatencySeconds: capturedTranscriptionLatency,
+                                processingLatencySeconds: processingLatency,
                                 promptName: capturedPromptName
                             )
                             container.mainContext.insert(record)

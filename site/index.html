@@ -3,337 +3,240 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LocalVoice — Local, private voice-to-text for macOS</title>
-  <meta name="description" content="A free macOS app for local, private voice-to-text. 100% local, no cloud, no APIs, no subscription. Your voice never leaves your machine.">
+  <title>LocalVoice - Private voice dictation for Mac</title>
+  <meta name="description" content="LocalVoice is a private voice dictation app for macOS. Hold Right Command, speak, release, and text appears in any app. Whisper and MLX run on-device.">
+  <meta property="og:title" content="LocalVoice">
+  <meta property="og:description" content="Private voice dictation for Mac. Runs entirely on-device.">
+  <meta property="og:image" content="assets/hero.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<!-- ====== Nav ====== -->
-<header class="mk-nav">
-  <div class="mk-nav-inner">
-    <a href="#" class="mk-logo">
-      <!-- waveform.circle logo -->
-      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <circle cx="32" cy="32" r="29" stroke="currentColor" stroke-width="2.2"/>
-        <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-          <line x1="20" y1="32" x2="20" y2="32"/>
-          <line x1="25" y1="27" x2="25" y2="37"/>
-          <line x1="30" y1="22" x2="30" y2="42"/>
-          <line x1="35" y1="25" x2="35" y2="39"/>
-          <line x1="40" y1="29" x2="40" y2="35"/>
-          <line x1="45" y1="31" x2="45" y2="33"/>
-        </g>
-      </svg>
-      Local<span class="accent">Voice</span>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="LocalVoice home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="13.5"></circle>
+          <path d="M9 16h.1M12 12v8M15 9v14M18 11v10M21 14v4M24 15v2"></path>
+        </svg>
+      </span>
+      <span>LocalVoice</span>
     </a>
-    <nav class="mk-nav-links">
-      <a href="#features">Features</a>
-      <a href="#how">How it works</a>
-      <a href="#install">Install</a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="#workflow">Workflow</a>
       <a href="#privacy">Privacy</a>
+      <a href="#install">Install</a>
       <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
     </nav>
-    <a class="mk-nav-cta" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>&#8595; Download</a>
-  </div>
-</header>
+    <a class="header-download" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>↓ Download</a>
+  </header>
 
-<main>
-
-<!-- ====== Hero ====== -->
-<section class="mk-hero mk-page">
-  <div class="mk-eyebrow">
-    <span class="dot"></span>
-    Open source &middot; macOS 14+ &middot; Apple Silicon
-  </div>
-
-  <h1 class="mk-h1">Speak. <em>Press release.</em><br>Text appears.</h1>
-
-  <p class="mk-sub">
-    A free macOS app for local, private voice-to-text.
-    Hold Right &#8984;, speak, release — your words land in any app.
-    No cloud, no APIs, no subscription.
-  </p>
-
-  <div class="mk-cta-row">
-    <a href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" class="mk-cta mk-cta-primary" download>&#8595; Download for macOS</a>
-    <a href="https://github.com/maxgubitosi/LocalVoice" class="mk-cta mk-cta-secondary">View on GitHub</a>
-  </div>
-
-  <div class="mk-cta-meta">Apple Silicon &middot; macOS 14 Sonoma+ &middot; <a href="#install" class="mk-cta-meta-link">First launch needs one Terminal command &#8595;</a></div>
-
-  <!-- Hero stage: dark desktop scene -->
-  <div class="mk-hero-stage">
-    <div class="mk-hero-grid"></div>
-    <!-- Simulated compose window -->
-    <div class="mk-hero-textbox">
-      <div class="lbl">Mail &middot; New Message</div>
-      <div class="body">Hi Maya, I've reviewed the deck and have a few notes — mostly around slide 4 where the framing could be tighter.<span class="caret"></span></div>
-    </div>
-    <!-- Recording capsule — the brand moment -->
-    <div class="lv-cap">
-      <div class="lv-dot-wrap">
-        <div class="lv-dot-halo"></div>
-        <div class="lv-dot"></div>
+  <main id="top">
+    <section class="hero">
+      <img class="hero-image" src="assets/hero.png" alt="LocalVoice running on macOS with settings and recording overlay visible">
+      <div class="hero-shade"></div>
+      <div class="hero-content">
+        <p class="eyebrow">Open source · macOS 14+ · Apple Silicon</p>
+        <h1>LocalVoice</h1>
+        <p class="hero-copy">
+          Private voice dictation for Mac. Hold Right Command, speak, release, and your words appear in the active app. Whisper and optional MLX refinement run entirely on-device.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>↓ Download for macOS</a>
+          <a class="button secondary" href="https://github.com/maxgubitosi/LocalVoice">View source</a>
+        </div>
+        <p class="hero-note">Current release is ad-hoc signed. First launch requires a one-time quarantine command.</p>
       </div>
-      <div class="lv-bars">
-        <span style="height:8px;  animation-delay:0s"></span>
-        <span style="height:18px; animation-delay:0.1s"></span>
-        <span style="height:26px; animation-delay:0.2s"></span>
-        <span style="height:14px; animation-delay:0.3s"></span>
-        <span style="height:22px; animation-delay:0.4s"></span>
-        <span style="height:10px; animation-delay:0.5s"></span>
-        <span style="height:20px; animation-delay:0.6s"></span>
-        <span style="height:6px;  animation-delay:0.7s"></span>
+    </section>
+
+    <section id="workflow" class="section">
+      <div class="section-heading">
+        <p class="label">Workflow</p>
+        <h2>Designed for the way Mac power users write.</h2>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ====== Features ====== -->
-<section id="features" class="mk-section mk-page">
-  <div class="mk-section-head">
-    <div class="mk-tag">Features</div>
-    <h2 class="mk-h2">Built like a Mac power tool, not a SaaS app.</h2>
-  </div>
-  <div class="mk-grid">
-
-    <!-- 100% on-device -->
-    <div class="mk-feat">
-      <div class="mk-feat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="11" width="16" height="10" rx="2"/>
-          <path d="M8 11V8a4 4 0 018 0v3"/>
-        </svg>
+      <div class="workflow-grid">
+        <article class="panel step">
+          <span class="step-index">01</span>
+          <h3>Hold Right Command</h3>
+          <p>The global hotkey starts recording without changing focus or opening a separate editor.</p>
+        </article>
+        <article class="panel step">
+          <span class="step-index">02</span>
+          <h3>Speak naturally</h3>
+          <p>WhisperKit transcribes locally. Refine mode can rewrite the transcript with MLX and your selected prompt.</p>
+        </article>
+        <article class="panel step">
+          <span class="step-index">03</span>
+          <h3>Release to insert</h3>
+          <p>LocalVoice inserts text into the focused field using Accessibility first, with pasteboard fallback when needed.</p>
+        </article>
       </div>
-      <div class="mk-feat-h">100% on-device</div>
-      <div class="mk-feat-p">Whisper for speech, MLX for rewriting. Your audio and text never leave your Mac.</div>
-      <div class="mk-feat-mono">0 network calls</div>
-    </div>
+    </section>
 
-    <!-- Instant insertion -->
-    <div class="mk-feat">
-      <div class="mk-feat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
-        </svg>
+    <section class="section product-section">
+      <div class="section-heading">
+        <p class="label">Product</p>
+        <h2>A quiet native utility, not another cloud dictation account.</h2>
       </div>
-      <div class="mk-feat-h">Instant insertion</div>
-      <div class="mk-feat-p">AXUIElement writes directly into the focused field. No clipboard pollution.</div>
-      <div class="mk-feat-mono">Pasteboard fallback</div>
-    </div>
-
-    <!-- Hold or latch -->
-    <div class="mk-feat">
-      <div class="mk-feat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 6a2 2 0 110 4H6a2 2 0 110-4 2 2 0 012 2v8a2 2 0 11-2 2 2 2 0 012-2h8a2 2 0 110 4 2 2 0 01-2-2V8a2 2 0 112-2 2 2 0 01-2 2H8z"/>
-        </svg>
+      <div class="image-grid">
+        <figure class="screenshot large">
+          <img src="assets/settings.png" alt="LocalVoice settings window showing local model and permission status">
+          <figcaption>Settings show readiness, local model status, prompts, and permissions in one native macOS window.</figcaption>
+        </figure>
+        <figure class="screenshot">
+          <img src="assets/history-prompts.png" alt="LocalVoice history and prompt management screens">
+          <figcaption>History, prompts, shortcuts, and exports stay local and easy to inspect.</figcaption>
+        </figure>
       </div>
-      <div class="mk-feat-h">Hold or latch</div>
-      <div class="mk-feat-p">Hold Right &#8984; to record, or double-tap to latch. Press 1–9 to switch prompts on the fly.</div>
-      <div class="mk-feat-mono">Right &#8984;</div>
-    </div>
+    </section>
 
-    <!-- Skips password fields -->
-    <div class="mk-feat">
-      <div class="mk-feat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"/>
-        </svg>
+    <section id="privacy" class="section proof-section">
+      <div class="section-heading">
+        <p class="label">Privacy model</p>
+        <h2>Your voice never leaves your Mac.</h2>
+        <p class="section-copy">LocalVoice has no cloud transcription service, no API keys, and no subscription. The app is MIT licensed, so the audio path is auditable.</p>
       </div>
-      <div class="mk-feat-h">Skips password fields</div>
-      <div class="mk-feat-p">Detects <code>kAXSecureTextField</code> and refuses to insert. A hard security invariant.</div>
-      <div class="mk-feat-mono">kAXSecureTextFieldRole</div>
-    </div>
-
-    <!-- Bring your own prompt -->
-    <div class="mk-feat">
-      <div class="mk-feat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="6" x2="20" y2="6"/>
-          <line x1="4" y1="12" x2="20" y2="12"/>
-          <line x1="4" y1="18" x2="20" y2="18"/>
-          <circle cx="9" cy="6" r="2.2" fill="currentColor"/>
-          <circle cx="15" cy="12" r="2.2" fill="currentColor"/>
-          <circle cx="7" cy="18" r="2.2" fill="currentColor"/>
-        </svg>
+      <div class="proof-grid">
+        <article class="panel proof">
+          <strong>Speech recognition</strong>
+          <span>WhisperKit · Apple Neural Engine optimized</span>
+        </article>
+        <article class="panel proof">
+          <strong>Text refinement</strong>
+          <span>MLX · Qwen models downloaded locally</span>
+        </article>
+        <article class="panel proof">
+          <strong>Text insertion</strong>
+          <span>AXUIElement first · clipboard fallback restored</span>
+        </article>
+        <article class="panel proof">
+          <strong>Secure fields</strong>
+          <span>Refuses kAXSecureTextFieldRole password inputs</span>
+        </article>
       </div>
-      <div class="mk-feat-h">Bring your own prompt</div>
-      <div class="mk-feat-p">Polish, summarize, translate, format as bullets — define prompts and bind them to number keys.</div>
-      <div class="mk-feat-mono">Right &#8984; + 1–9</div>
-    </div>
-
-    <!-- History with stats -->
-    <div class="mk-feat">
-      <div class="mk-feat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M12 7v5l3 2"/>
-        </svg>
+      <div class="architecture">
+        <span>Microphone</span>
+        <span>Whisper</span>
+        <span>Optional MLX refine</span>
+        <span>Focused app</span>
       </div>
-      <div class="mk-feat-h">History with stats</div>
-      <div class="mk-feat-p">Every transcription logged locally. Export to CSV. Per-app, per-mode, per-language stats.</div>
-      <div class="mk-feat-mono">&#8984;H</div>
-    </div>
+    </section>
 
-  </div>
-</section>
-
-<!-- ====== How it works ====== -->
-<section id="how" class="mk-section mk-page">
-  <div class="mk-section-head">
-    <div class="mk-tag">How it works</div>
-    <h2 class="mk-h2">Three keys. Three seconds.</h2>
-  </div>
-  <div class="mk-steps">
-
-    <div class="mk-step">
-      <div class="mk-step-num">01</div>
-      <div class="mk-step-h">Hold Right &#8984;</div>
-      <div class="mk-step-p">Press and hold the right Command key. The recording capsule appears in the corner of your screen.</div>
-      <div class="mk-step-vis">
-        <span>&#8984; held</span>
+    <section class="section features-section">
+      <div class="section-heading">
+        <p class="label">Details</p>
+        <h2>Built for fast local writing workflows.</h2>
       </div>
-    </div>
-
-    <div class="mk-step">
-      <div class="mk-step-num">02</div>
-      <div class="mk-step-h">Speak</div>
-      <div class="mk-step-p">Whisper transcribes locally on the Apple Neural Engine. Optionally Qwen3.5 (MLX) cleans it up — also locally.</div>
-      <div class="mk-step-vis mk-step-vis-dark">
-        <div class="lv-cap">
-          <div class="lv-dot-wrap">
-            <div class="lv-dot-halo"></div>
-            <div class="lv-dot"></div>
-          </div>
-          <div class="lv-bars">
-            <span style="height:8px;  animation-delay:0.05s"></span>
-            <span style="height:20px; animation-delay:0.15s"></span>
-            <span style="height:14px; animation-delay:0.25s"></span>
-            <span style="height:24px; animation-delay:0.35s"></span>
-            <span style="height:10px; animation-delay:0.45s"></span>
-          </div>
+      <div class="feature-list">
+        <div class="feature-row">
+          <h3>Hold or latch recording</h3>
+          <p>Hold Right Command for push-to-talk, or double-tap to latch and tap again to stop.</p>
+        </div>
+        <div class="feature-row">
+          <h3>Prompt shortcuts</h3>
+          <p>Press 1-9 while recording to temporarily select a rewrite prompt for that dictation.</p>
+        </div>
+        <div class="feature-row">
+          <h3>Local history</h3>
+          <p>Review recordings, search transcripts when saving is enabled, and export CSV for analysis.</p>
+        </div>
+        <div class="feature-row">
+          <h3>Hardware-aware defaults</h3>
+          <p>LocalVoice recommends an MLX model tier based on your Apple Silicon chip and memory.</p>
         </div>
       </div>
+    </section>
+
+    <section id="install" class="section install-section">
+      <div class="section-heading">
+        <p class="label">Install today</p>
+        <h2>Transparent about the current distribution state.</h2>
+        <p class="section-copy">LocalVoice is currently distributed through GitHub Releases as an ad-hoc signed app. A Developer ID notarized DMG is planned, but not available yet.</p>
+      </div>
+      <div class="install-grid">
+        <article class="panel install-card">
+          <span class="step-index">01</span>
+          <h3>Download and unzip</h3>
+          <p>Download <code>LocalVoice.zip</code>, unzip it, and move <code>LocalVoice.app</code> into <code>/Applications</code>.</p>
+        </article>
+        <article class="panel install-card">
+          <span class="step-index">02</span>
+          <h3>Clear quarantine once</h3>
+          <p>Because the current build is ad-hoc signed, run this once before opening the app:</p>
+          <div class="command-panel" data-command-panel>
+            <div>
+              <span class="command-label">terminal</span>
+              <code>xattr -dr com.apple.quarantine /Applications/LocalVoice.app</code>
+            </div>
+            <button class="copy-command" type="button" data-copy-command="xattr -dr com.apple.quarantine /Applications/LocalVoice.app" aria-label="Copy quarantine command">
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+              <span class="copy-text">Copy</span>
+            </button>
+          </div>
+        </article>
+        <article class="panel install-card">
+          <span class="step-index">03</span>
+          <h3>Grant permissions</h3>
+          <p>Enable Microphone, Accessibility, and Input Monitoring in System Settings, then hold Right Command to dictate.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section requirements-section">
+      <div class="requirements">
+        <div>
+          <p class="label">Requirements</p>
+          <h2>macOS 14+ on Apple Silicon.</h2>
+        </div>
+        <ul>
+          <li>M1 or later Mac</li>
+          <li>macOS Sonoma or newer</li>
+          <li>Microphone, Accessibility, and Input Monitoring permissions</li>
+          <li>Disk space for Whisper and optional MLX models</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>LocalVoice · MIT License · Open source local AI dictation</p>
+    <div>
+      <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
+      <a href="https://github.com/maxgubitosi/LocalVoice/blob/main/README.md">Docs</a>
+      <a href="https://github.com/maxgubitosi/LocalVoice/issues">Issues</a>
     </div>
-
-    <div class="mk-step">
-      <div class="mk-step-num">03</div>
-      <div class="mk-step-h">Release</div>
-      <div class="mk-step-p">Text is inserted directly into the focused field via AXUIElement. No clipboard, no network.</div>
-      <div class="mk-step-vis">
-        <span>text &#8594; focused field</span>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ====== Install ====== -->
-<section id="install" class="mk-section mk-page">
-  <div class="mk-section-head">
-    <div class="mk-tag">Install</div>
-    <h2 class="mk-h2">Three steps. About 30 seconds.</h2>
-    <p class="mk-section-sub">
-      LocalVoice is signed ad-hoc (no paid Apple Developer ID yet), so macOS quarantines it on download.
-      Strip the flag once and the hotkey works cleanly.
-    </p>
-  </div>
-
-  <div class="mk-steps">
-
-    <div class="mk-step">
-      <div class="mk-step-num">01</div>
-      <div class="mk-step-h">Download &amp; unzip</div>
-      <div class="mk-step-p">
-        Click <strong>Download for macOS</strong> above, then unzip <code>LocalVoice.zip</code> in Finder.
-      </div>
-      <div class="mk-step-vis">
-        <span>LocalVoice.zip &#8594; LocalVoice.app</span>
-      </div>
-    </div>
-
-    <div class="mk-step">
-      <div class="mk-step-num">02</div>
-      <div class="mk-step-h">Move to Applications &amp; clear quarantine</div>
-      <div class="mk-step-p">
-        Drag <code>LocalVoice.app</code> into <code>/Applications</code>. Then open
-        <strong>Terminal</strong> and paste:
-      </div>
-      <div class="mk-step-vis mk-step-vis-code">
-        <code>xattr -dr com.apple.quarantine /Applications/LocalVoice.app</code>
-      </div>
-    </div>
-
-    <div class="mk-step">
-      <div class="mk-step-num">03</div>
-      <div class="mk-step-h">Open &amp; grant permissions</div>
-      <div class="mk-step-p">
-        Launch the app. In <em>System Settings &#8594; Privacy &amp; Security</em>, enable
-        <strong>Microphone</strong>, <strong>Accessibility</strong>, and <strong>Input Monitoring</strong>.
-      </div>
-      <div class="mk-step-vis">
-        <span>Right &#8984; ready</span>
-      </div>
-    </div>
-
-  </div>
-
-  <p class="mk-install-note">
-    Already opened it before clearing quarantine? In <em>System Settings &#8594; Privacy &amp; Security</em>,
-    remove the existing <strong>LocalVoice</strong> entries from <em>Input Monitoring</em> and <em>Accessibility</em>,
-    run the command above, then relaunch and grant the permissions again.
-  </p>
-</section>
-
-<!-- ====== Privacy ====== -->
-<section id="privacy" class="mk-section mk-page">
-  <div class="mk-privacy">
-    <div class="mk-tag" style="color:#73bfff">Privacy</div>
-    <h2 class="mk-h2">Your voice never leaves your machine.</h2>
-    <p class="mk-section-sub">No cloud transcription. No API keys. No subscription. The app is open-source under MIT — you can read every line that touches your audio.</p>
-    <div class="mk-privacy-stats">
-      <div class="mk-privacy-stat">
-        <div class="mk-privacy-stat-v">0</div>
-        <div class="mk-privacy-stat-l">network calls</div>
-      </div>
-      <div class="mk-privacy-stat">
-        <div class="mk-privacy-stat-v">100%</div>
-        <div class="mk-privacy-stat-l">on-device</div>
-      </div>
-      <div class="mk-privacy-stat">
-        <div class="mk-privacy-stat-v">MIT</div>
-        <div class="mk-privacy-stat-l">licensed</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<!-- ====== Footer ====== -->
-<footer class="mk-page mk-footer">
-  <div class="mk-footer-logo">
-    <svg viewBox="0 0 64 64" fill="none" width="16" height="16" aria-hidden="true">
-      <circle cx="32" cy="32" r="29" stroke="currentColor" stroke-width="2.2"/>
-      <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-        <line x1="20" y1="32" x2="20" y2="32"/>
-        <line x1="25" y1="27" x2="25" y2="37"/>
-        <line x1="30" y1="22" x2="30" y2="42"/>
-        <line x1="35" y1="25" x2="35" y2="39"/>
-        <line x1="40" y1="29" x2="40" y2="35"/>
-        <line x1="45" y1="31" x2="45" y2="33"/>
-      </g>
-    </svg>
-    <span>LocalVoice &mdash; &copy; 2026 &middot; MIT License</span>
-  </div>
-  <div class="mk-footer-links">
-    <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
-    <a href="https://github.com/maxgubitosi/LocalVoice/blob/main/README.md">Docs</a>
-    <a href="https://github.com/maxgubitosi/LocalVoice/issues">Issues</a>
-  </div>
-</footer>
-
+  </footer>
+  <script>
+    for (const button of document.querySelectorAll("[data-copy-command]")) {
+      button.addEventListener("click", async () => {
+        const text = button.dataset.copyCommand;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.setAttribute("readonly", "");
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            textarea.remove();
+          }
+          const label = button.querySelector(".copy-text");
+          const previous = label.textContent;
+          label.textContent = "Copied";
+          button.classList.add("copied");
+          setTimeout(() => {
+            label.textContent = previous;
+            button.classList.remove("copied");
+          }, 1400);
+        } catch {
+          const label = button.querySelector(".copy-text");
+          label.textContent = "Select text";
+        }
+      });
+    }
+  </script>
 </body>
 </html>

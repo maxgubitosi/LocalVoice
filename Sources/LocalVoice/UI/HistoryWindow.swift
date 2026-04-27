@@ -1,18 +1,19 @@
 import AppKit
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 final class HistoryWindowController: NSWindowController {
     convenience init(modelContainer: ModelContainer) {
         let window = NSWindow(
-            contentRect: CGRect(x: 0, y: 0, width: 720, height: 540),
+            contentRect: CGRect(x: 0, y: 0, width: 840, height: 620),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "LocalVoice — History"
+        window.title = "LocalVoice History"
         window.center()
-        window.minSize = CGSize(width: 520, height: 360)
+        window.minSize = CGSize(width: 620, height: 420)
         window.contentView = NSHostingView(
             rootView: HistoryView().modelContainer(modelContainer)
         )
@@ -20,63 +21,158 @@ final class HistoryWindowController: NSWindowController {
     }
 }
 
-// MARK: - Main view
-
 struct HistoryView: View {
     @Query(sort: \TranscriptionRecord.timestamp, order: .reverse)
     private var records: [TranscriptionRecord]
 
+    @State private var searchText = ""
+    @State private var selectedMode = "All"
+    @State private var selectedLanguage = "All"
+
+    private var filteredRecords: [TranscriptionRecord] {
+        records.filter { record in
+            let matchesMode = selectedMode == "All" || record.mode == selectedMode
+            let lang = record.detectedLanguage?.uppercased() ?? "Unknown"
+            let matchesLanguage = selectedLanguage == "All" || lang == selectedLanguage
+            let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let matchesSearch: Bool
+            if query.isEmpty {
+                matchesSearch = true
+            } else {
+                let haystack = [
+                    record.frontmostAppName ?? "",
+                    record.mode,
+                    record.promptName ?? "",
+                    record.detectedLanguage ?? "",
+                    record.transcribedText ?? "",
+                    record.originalText ?? "",
+                    record.refinedText ?? ""
+                ].joined(separator: " ")
+                matchesSearch = haystack.localizedCaseInsensitiveContains(query)
+            }
+            return matchesMode && matchesLanguage && matchesSearch
+        }
+    }
+
+    private var availableModes: [String] {
+        ["All"] + Array(Set(records.map(\.mode))).sorted()
+    }
+
+    private var availableLanguages: [String] {
+        ["All"] + Array(Set(records.map { $0.detectedLanguage?.uppercased() ?? "Unknown" })).sorted()
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            StatsBar(records: records)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color(nsColor: .controlBackgroundColor))
+            header
 
             Divider()
 
             if records.isEmpty {
-                emptyState
+                LVEmptyState(
+                    systemImage: "clock.arrow.circlepath",
+                    title: "No recordings yet",
+                    message: "Use Right Command to dictate. Your local history and stats will appear here."
+                )
+            } else if filteredRecords.isEmpty {
+                LVEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "No matching records",
+                    message: "Try a different search, mode, or language filter."
+                )
             } else {
-                recordList
+                List(filteredRecords) { record in
+                    RecordRow(record: record)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 5, leading: 14, bottom: 5, trailing: 14))
+                }
+                .listStyle(.plain)
             }
+
+            Divider()
+
+            footer
         }
+        .background(LVStyle.background)
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "waveform.circle")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
-            Text("No recordings yet")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            Text("Use the hotkey to start transcribing.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+    private var header: some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("History")
+                        .font(.title2.weight(.semibold))
+                    Text("Local transcription metadata, stats, and optional text content.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
-    private var recordList: some View {
-        List(records) { record in
-            RecordRow(record: record)
-        }
-        .listStyle(.inset)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                ExportButton(records: records)
-                    .padding()
                 Spacer()
+
+                ExportButton(records: filteredRecords)
+                    .disabled(filteredRecords.isEmpty)
             }
-            .background(Color(nsColor: .controlBackgroundColor))
+
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField("Search app, prompt, language, or transcript", text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(LVStyle.elevatedBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(LVStyle.separator, lineWidth: 0.5)
+            )
+
+            HStack(spacing: 12) {
+                Picker("Mode", selection: $selectedMode) {
+                    ForEach(availableModes, id: \.self) { mode in
+                        Text(mode).tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 190)
+
+                Picker("Language", selection: $selectedLanguage) {
+                    ForEach(availableLanguages, id: \.self) { language in
+                        Text(language).tag(language)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 140)
+
+                Spacer()
+
+                StatsStrip(records: filteredRecords)
+            }
         }
+        .padding(18)
+        .background(LVStyle.groupedBackground.opacity(0.62))
+    }
+
+    private var footer: some View {
+        HStack {
+            Text("\(filteredRecords.count) of \(records.count) recordings")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text("Stored locally with SwiftData")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(LVStyle.groupedBackground.opacity(0.62))
     }
 }
 
-// MARK: - Stats bar
-
-struct StatsBar: View {
+private struct StatsStrip: View {
     let records: [TranscriptionRecord]
 
     private var totalWords: Int { records.reduce(0) { $0 + $1.wordCount } }
@@ -89,115 +185,220 @@ struct StatsBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 24) {
-            StatCell(label: "Recordings", value: "\(records.count)")
-            StatCell(label: "Total words", value: "\(totalWords)")
-            if let wpm = avgWPM {
-                StatCell(label: "Avg WPM", value: String(format: "%.0f", wpm))
+        HStack(spacing: 8) {
+            CompactStat(label: "Recordings", value: "\(records.count)")
+            CompactStat(label: "Words", value: "\(totalWords)")
+            if let avgWPM {
+                CompactStat(label: "Avg WPM", value: String(format: "%.0f", avgWPM))
             }
-            Spacer()
         }
     }
 }
 
-struct StatCell: View {
+private struct CompactStat: View {
     let label: String
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) {
             Text(value)
-                .font(.system(.title2, design: .rounded).bold())
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(LVStyle.elevatedBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(LVStyle.separator, lineWidth: 0.5)
+        )
     }
 }
 
-// MARK: - Record row
-
-struct RecordRow: View {
+private struct RecordRow: View {
     let record: TranscriptionRecord
+    @State private var showingOriginal = false
 
     private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
     }()
 
     private var wpm: String {
-        guard record.audioDurationSeconds > 0 else { return "—" }
-        let v = Double(record.wordCount) / record.audioDurationSeconds * 60
-        return String(format: "%.0f wpm", v)
+        guard record.audioDurationSeconds > 0 else { return "-" }
+        let value = Double(record.wordCount) / record.audioDurationSeconds * 60
+        return String(format: "%.0f wpm", value)
+    }
+
+    private var finalText: String? {
+        record.finalText
+    }
+
+    private var originalText: String? {
+        record.originalText
+    }
+
+    private var hasOriginalComparison: Bool {
+        guard record.mode == AppMode.llmRewrite.rawValue,
+              let original = originalText,
+              let final = finalText,
+              !original.isEmpty,
+              original != final
+        else { return false }
+        return true
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(Self.dateFormatter.string(from: record.timestamp))
-                    .font(.subheadline.bold())
-                Spacer()
-                Text(wpm)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+        LVPanel {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(Self.dateFormatter.string(from: record.timestamp))
+                            .font(.subheadline.weight(.semibold))
+                        Text(record.frontmostAppName ?? "Unknown app")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
-            HStack(spacing: 8) {
-                if let app = record.frontmostAppName {
-                    Label(app, systemImage: "app.badge")
+                    Spacer()
+
+                    HStack(spacing: 6) {
+                        LVBadge(record.mode, tint: record.mode == AppMode.llmRewrite.rawValue ? .purple : LVStyle.accent)
+                        if let language = record.detectedLanguage {
+                            LVBadge(language.uppercased(), tint: .secondary)
+                        }
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Label("\(record.wordCount) words", systemImage: "textformat.size")
+                    TimingChip(label: "Audio", value: formatSeconds(record.audioDurationSeconds))
+                    if let transcription = record.transcriptionLatencySeconds {
+                        TimingChip(label: "Whisper", value: formatSeconds(transcription))
+                    }
+                    if let refine = record.llmLatencySeconds {
+                        TimingChip(label: "Refine", value: formatSeconds(refine))
+                    }
+                    if let total = record.processingLatencySeconds {
+                        TimingChip(label: "Total", value: formatSeconds(total))
+                    }
+                    Label(wpm, systemImage: "speedometer")
+                    if let promptName = record.promptName {
+                        Label(promptName, systemImage: "text.badge.checkmark")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                if let text = finalText, !text.isEmpty {
+                    if hasOriginalComparison {
+                        Text("Refined")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(text)
+                        .font(.callout)
+                        .foregroundStyle(.primary.opacity(0.82))
+                        .lineLimit(3)
+                        .textSelection(.enabled)
+                        .padding(.top, 2)
+
+                    HStack {
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(text, forType: .string)
+                        } label: {
+                            Label("Copy Text", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+
+                        if hasOriginalComparison {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.16)) {
+                                    showingOriginal.toggle()
+                                }
+                            } label: {
+                                Label(showingOriginal ? "Hide Original" : "Show Original", systemImage: "text.viewfinder")
+                            }
+                            .buttonStyle(.borderless)
+                            .controlSize(.small)
+                        }
+
+                        Spacer()
+                    }
+
+                    if hasOriginalComparison, showingOriginal, let originalText {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Original transcript")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            Text(originalText)
+                                .font(.caption)
+                                .foregroundStyle(.primary.opacity(0.72))
+                                .textSelection(.enabled)
+                        }
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(LVStyle.groupedBackground.opacity(0.45))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(LVStyle.separator, lineWidth: 0.5)
+                        )
+                    }
+                } else {
+                    Text("Transcript content was not saved for this recording.")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
-                Text(record.mode)
-                    .font(.caption)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(record.mode == AppMode.llmRewrite.rawValue
-                        ? Color.purple.opacity(0.15)
-                        : Color.blue.opacity(0.12))
-                    .clipShape(Capsule())
-                if record.mode == AppMode.llmRewrite.rawValue, let pname = record.promptName {
-                    Text(pname)
-                        .font(.caption2)
-                        .foregroundColor(.purple.opacity(0.8))
-                }
-                if let lang = record.detectedLanguage {
-                    Text(lang.uppercased())
-                        .font(.caption2.bold())
-                        .foregroundColor(.secondary)
-                }
-                Text("\(record.wordCount) words")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text(String(format: "%.1fs", record.audioDurationSeconds))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            if let text = record.transcribedText {
-                Text(text.prefix(120))
-                    .font(.caption)
-                    .foregroundColor(.primary.opacity(0.7))
-                    .lineLimit(2)
-                    .padding(.top, 2)
             }
         }
-        .padding(.vertical, 4)
+    }
+
+    private func formatSeconds(_ seconds: Double) -> String {
+        if seconds < 1 {
+            return "\(Int((seconds * 1000).rounded()))ms"
+        }
+        return String(format: "%.1fs", seconds)
     }
 }
 
-// MARK: - Export
+private struct TimingChip: View {
+    let label: String
+    let value: String
 
-struct ExportButton: View {
+    var body: some View {
+        Text("\(label) \(value)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(LVStyle.groupedBackground.opacity(0.65))
+            )
+    }
+}
+
+private struct ExportButton: View {
     let records: [TranscriptionRecord]
 
     var body: some View {
-        Button("Export CSV…") {
+        Button {
             exportCSV()
+        } label: {
+            Label("Export CSV", systemImage: "square.and.arrow.down")
         }
-        .disabled(records.isEmpty)
+        .buttonStyle(.borderedProminent)
     }
 
     private func exportCSV() {
@@ -212,23 +413,28 @@ struct ExportButton: View {
     }
 
     private func buildCSV() -> String {
-        let header = "timestamp,app,mode,whisperModel,llmModel,wordCount,durationSeconds,wpm,language,promptName,text"
-        let rows = records.map { r -> String in
-            let wpm: String = r.audioDurationSeconds > 0
-                ? String(format: "%.1f", Double(r.wordCount) / r.audioDurationSeconds * 60)
+        let header = "timestamp,app,mode,whisperModel,llmModel,wordCount,durationSeconds,wpm,language,promptName,transcriptionSeconds,refineSeconds,processingSeconds,originalText,refinedText,finalText"
+        let rows = records.map { record -> String in
+            let wpm: String = record.audioDurationSeconds > 0
+                ? String(format: "%.1f", Double(record.wordCount) / record.audioDurationSeconds * 60)
                 : ""
             let fields: [String] = [
-                iso(r.timestamp),
-                escape(r.frontmostAppName ?? ""),
-                escape(r.mode),
-                escape(r.whisperModel),
-                escape(r.llmModel ?? ""),
-                "\(r.wordCount)",
-                String(format: "%.2f", r.audioDurationSeconds),
+                iso(record.timestamp),
+                escape(record.frontmostAppName ?? ""),
+                escape(record.mode),
+                escape(record.whisperModel),
+                escape(record.llmModel ?? ""),
+                "\(record.wordCount)",
+                String(format: "%.2f", record.audioDurationSeconds),
                 wpm,
-                escape(r.detectedLanguage ?? ""),
-                escape(r.promptName ?? ""),
-                escape(r.transcribedText ?? "")
+                escape(record.detectedLanguage ?? ""),
+                escape(record.promptName ?? ""),
+                seconds(record.transcriptionLatencySeconds),
+                seconds(record.llmLatencySeconds),
+                seconds(record.processingLatencySeconds),
+                escape(record.originalText ?? ""),
+                escape(record.refinedText ?? ""),
+                escape(record.finalText ?? "")
             ]
             return fields.joined(separator: ",")
         }
@@ -237,6 +443,11 @@ struct ExportButton: View {
 
     private func iso(_ date: Date) -> String {
         ISO8601DateFormatter().string(from: date)
+    }
+
+    private func seconds(_ value: Double?) -> String {
+        guard let value else { return "" }
+        return String(format: "%.3f", value)
     }
 
     private func escape(_ value: String) -> String {
