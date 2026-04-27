@@ -37,7 +37,7 @@ struct PermissionsChecklistView: View {
 
             permissionRow(
                 title: "Input Monitoring",
-                subtitle: "Detect the Right Command hotkey globally.",
+                subtitle: "Detect the recording hotkey globally.",
                 granted: snapshot.inputMonitoring,
                 action: PermissionManager.openInputMonitoringSettings
             )

@@ -12,7 +12,7 @@
 ┌─────────────────────┐     ┌──────────────────────────┐
 │   HotkeyManager     │────▶│      AppDelegate         │
 │  (CGEventTap)       │     │  (orchestrates pipeline) │
-│  Right Command key  │     └──────────┬───────────────┘
+│  recording hotkey   │     └──────────┬───────────────┘
 └─────────────────────┘                │
                            ┌───────────▼────────────┐
                            │     AudioCapture       │
@@ -30,8 +30,8 @@
                               │                 │
                     ┌─────────▼──────┐  ┌───────▼────────┐
                     │  Mode 1:       │  │  Mode 2:       │
-                    │  Direct insert │  │  OllamaClient  │
-                    │                │  │  gemma4        │
+                    │  Direct insert │  │  MLXClient     │
+                    │                │  │  local text LLM│
                     └─────────┬──────┘  └───────┬────────┘
                               │                 │  rewritten text
                               └────────┬────────┘
@@ -49,23 +49,24 @@
 - **`LocalVoiceApp.swift`** — `@main`, launches `NSApplication` in `.accessory` mode (no Dock icon)
 - **`AppDelegate.swift`** — wires all subsystems, handles the record→transcribe→insert pipeline
 - **`AppSettings.swift`** — `ObservableObject` backed by `UserDefaults`, persists mode/model choices
-- **`DeviceCapability.swift`** — detects chip generation and RAM, auto-selects the recommended Gemma4 variant
+- **`DeviceCapability.swift`** — detects chip generation and RAM, auto-selects the recommended local MLX text model
 
 ### `Audio/`
 - **`AudioCapture.swift`** — `AVAudioEngine` tap on input node. Converts native format → 16 kHz Float32 mono (WhisperKit requirement) via `AVAudioConverter`. Accumulates samples in a `[Float]` array during recording.
-- **`HotkeyManager.swift`** — `CGEvent.tapCreate` at `.cgSessionEventTap`. Monitors `.flagsChanged` events for Right Command (kVK_RightCommand = `0x36`). Supports two hotkey modes: **hold** (press/release) and **latch** (double-tap to start, single tap to stop). Returns `nil` (consumes event) when hotkey is active so it doesn't leak to other apps.
+- **`HotkeyManager.swift`** — `CGEvent.tapCreate` at `.cgSessionEventTap`. Monitors `.flagsChanged` events for the selected recording hotkey. Supports two hotkey modes: **hold** (press/release) and **latch** (double-tap to start, single tap to stop). Returns `nil` (consumes event) when hotkey is active so it doesn't leak to other apps.
 
 ### `Transcription/`
 - **`TranscriptionEngine.swift`** — Wraps `WhisperKit`. Loads model asynchronously on startup. `transcribe(buffer:)` takes raw `[Float]` PCM, returns cleaned `String`. Supports model swapping at runtime.
 
 ### `LLM/`
-- **`OllamaClient.swift`** — HTTP client for `localhost:11434`.
-  - `rewrite(transcript:)` — sends crafted system prompt to clean up dictation
-  - `listModels()` — queries `/api/tags` for installed models
-  - `isAvailable()` — health check before attempting LLM rewrite
+- **`MLXClient.swift`** — in-process local inference via `mlx-swift-lm`.
+  - `rewrite(transcript:prompt:appContext:detectedLanguage:)` — composes structured rewrite instructions for dictation cleanup
+  - `generate(prompt:maxTokens:)` — loads the selected text model and runs deterministic generation
+- **`MLXModelCatalog.swift`** — curated text-only model catalog with RAM, download, license, and `/no_think` metadata.
+- **`PromptComposer.swift`** — builds the final structured prompt with task, language, app context, and literal dictation block.
 
 ### `Persistence/`
-- **`TranscriptionRecord.swift`** — `@Model` (SwiftData). Stores per-transcription metadata: timestamp, audio duration, word count, detected language, destination app, mode, Whisper model, Ollama model, Ollama latency, and optionally the transcribed text (opt-in, default off).
+- **`TranscriptionRecord.swift`** — `@Model` (SwiftData). Stores per-transcription metadata: timestamp, audio duration, word count, detected language, destination app, mode, Whisper model, LLM model, LLM latency, and optionally the transcribed text (opt-in, default off).
 
 ### `TextInsertion/`
 - **`TextInserter.swift`** — Two-tier insertion strategy:
@@ -92,7 +93,7 @@ User releases / taps to stop
     → RecordingOverlayWindow.show(.transcribing)
     → TranscriptionEngine.transcribe([Float]) → String
     → [if Mode 2] RecordingOverlayWindow.show(.improving)
-    → [if Mode 2] OllamaClient.rewrite(String) → String
+    → [if Mode 2] MLXClient.rewrite(String) → String
     → TextInserter.insert(String)
     → TranscriptionRecord saved to SwiftData
     → RecordingOverlayWindow.hide()
@@ -109,7 +110,7 @@ Required `Info.plist` keys:
 <string>LocalVoice uses Accessibility to insert transcribed text into apps.</string>
 
 <key>NSInputMonitoringUsageDescription</key>
-<string>LocalVoice monitors the Right Command key to trigger recording.</string>
+<string>LocalVoice monitors the selected recording hotkey globally.</string>
 ```
 
 Required sandbox entitlements (or disable sandbox for SPM CLI):
@@ -120,14 +121,12 @@ Required sandbox entitlements (or disable sandbox for SPM CLI):
 
 - **Main thread**: UI updates, `NSApplication` events, menu interactions
 - **`AudioCapture` tap callback**: AVAudioEngine thread — only appends to `[Float]`
-- **`Task { ... }`** (async/await): Transcription + Ollama HTTP (structured concurrency)
+- **`Task { ... }`** (async/await): Transcription + MLX inference (structured concurrency)
 - **`MainActor.run { }`**: Text insertion and UI updates marshaled back to main thread
 
 ## Known Limitations & Future Work
 
 - [ ] Xcode project / `.xcodeproj` for full App Store / notarization support
-- [ ] Streaming Ollama responses (currently waits for full completion)
-- [ ] Custom hotkey configuration UI (currently hardcoded to Right Command)
 - [ ] Voice Activity Detection to auto-trim silence at start/end
 - [ ] Multiple language support (WhisperKit supports 99 languages)
 - [ ] Whisper model download UI (currently must be pre-downloaded)

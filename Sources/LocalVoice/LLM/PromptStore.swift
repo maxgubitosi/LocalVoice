@@ -30,21 +30,34 @@ final class PromptStore: ObservableObject {
         let presetIDs = Set(LLMPrompt.allPresets.map(\.id))
 
         // Load UserDefaults before self is fully initialized
-        let modifiedIDs: Set<UUID> = {
+        var modifiedIDs: Set<UUID> = {
             let strings = UserDefaults.standard.stringArray(forKey: "modifiedPresetIDs") ?? []
             return Set(strings.compactMap(UUID.init))
         }()
+        var migratedLegacyPreset = false
 
         var result: [LLMPrompt] = LLMPrompt.allPresets.map { preset in
             // Only restore a preset from disk if the user explicitly modified it.
-            if modifiedIDs.contains(preset.id), let s = savedByID[preset.id] { return s }
+            if modifiedIDs.contains(preset.id), let s = savedByID[preset.id] {
+                if Self.isLegacyDefaultPreset(s) {
+                    modifiedIDs.remove(preset.id)
+                    migratedLegacyPreset = true
+                    return preset
+                }
+                return s
+            }
             return preset
         }
         result += saved.filter { !presetIDs.contains($0.id) }
 
         prompts = result
 
-        if !FileManager.default.fileExists(atPath: fileURL.path) { save() }
+        if migratedLegacyPreset {
+            modifiedPresetIDs = modifiedIDs
+            save()
+        } else if !FileManager.default.fileExists(atPath: fileURL.path) {
+            save()
+        }
     }
 
     func prompt(withKeyNumber n: Int) -> LLMPrompt? {
@@ -109,4 +122,44 @@ final class PromptStore: ObservableObject {
             Logger.persistence.error("Failed to save prompts to disk: \(error)")
         }
     }
+
+    private static func isLegacyDefaultPreset(_ prompt: LLMPrompt) -> Bool {
+        legacyDefaults.contains { legacy in
+            legacy.id == prompt.id
+                && legacy.name == prompt.name
+                && legacy.instruction == prompt.instruction
+                && legacy.keyNumber == prompt.keyNumber
+        }
+    }
+
+    private static let legacyDefaults: [LLMPrompt] = [
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "Improve",
+            instruction: "Polish everything — fix grammar, punctuation, remove filler words (um, uh, like, you know, right), clean run-on sentences, improve flow. Preserve the speaker's exact intent and vocabulary. Return ONLY the rewritten text, no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 1
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            name: "Correct",
+            instruction: "Fix ONLY words clearly misrecognized by speech recognition (wrong homophones, garbled words, obvious substitution errors). Do NOT rephrase, restructure, or improve the text in any way. Preserve every word that could plausibly be what the speaker said. Return ONLY the corrected text, no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 2
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+            name: "Promptify",
+            instruction: "Convert the raw dictation into a clear, well-structured prompt for an LLM. Infer the user's intent. Reformulate as a precise instruction: define the task, provide relevant context, specify desired output format, and include constraints if needed. Return ONLY the reformulated prompt, no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 3
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!,
+            name: "Formalize",
+            instruction: "Rewrite in a professional, formal register suitable for business emails or official documents. Preserve all content and factual details exactly. Eliminate casual language, contractions, and colloquialisms. Return ONLY the rewritten text, no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 4
+        )
+    ]
 }

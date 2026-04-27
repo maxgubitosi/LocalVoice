@@ -164,7 +164,7 @@ final class MenuBarManager: NSObject {
         let promptItem = NSMenuItem(title: "Prompt: \(activePrompt.name)", action: nil, keyEquivalent: "")
         let promptSubmenu = NSMenu()
         for p in promptStore.prompts {
-            let label = p.keyNumber.map { "\(p.name)  Right Command+\($0)" } ?? p.name
+            let label = p.keyNumber.map { "\(p.name)  press \($0) while recording" } ?? p.name
             let item = NSMenuItem(title: label, action: #selector(promptSelected(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = p.id
@@ -197,7 +197,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(.separator())
 
         // Hotkey hint
-        let hotkeyHint = NSMenuItem(title: "Hold Right Command to record", action: nil, keyEquivalent: "")
+        let hotkeyHint = NSMenuItem(title: "Hold \(settings.recordingHotkey.label) to record", action: nil, keyEquivalent: "")
         hotkeyHint.isEnabled = false
         menu.addItem(hotkeyHint)
 

@@ -65,7 +65,7 @@ struct FirstRunView: View {
                             )
 
                             ModelDownloadRow(
-                                label: "Qwen text refinement",
+                                label: "Local text refinement",
                                 sublabel: mlxModelDisplayName(mlxModelID),
                                 progress: isMLXDownloaded ? 1.0 : (mlxProgress > 0 ? mlxProgress : nil),
                                 isComplete: isMLXDownloaded
@@ -173,16 +173,10 @@ struct FirstRunView: View {
     }
 
     private func mlxModelDisplayName(_ id: String) -> String {
-        let name = id.split(separator: "/").last.map(String.init) ?? id
-        let sizeGB: String
-        switch id {
-        case let s where s.contains("2B"): sizeGB = "~1.6 GB"
-        case let s where s.contains("4B"): sizeGB = "~2.9 GB"
-        case let s where s.contains("9B"): sizeGB = "~5.0 GB"
-        case let s where s.contains("27B"): sizeGB = "~14 GB"
-        default: sizeGB = "local download"
+        guard let model = MLXModelCatalog.model(id: id) else {
+            return id.split(separator: "/").last.map(String.init) ?? id
         }
-        return "\(name) · \(sizeGB)"
+        return "\(model.displayName) · \(String(format: "%.1f", model.downloadSizeGB)) GB"
     }
 }
 

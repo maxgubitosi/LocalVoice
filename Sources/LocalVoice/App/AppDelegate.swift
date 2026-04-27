@@ -51,7 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         recordingOverlay = RecordingOverlayWindow()
         menuBarManager = MenuBarManager(settings: appSettings, promptStore: promptStore, delegate: self, updaterController: updaterController)
         hotkeyManager = HotkeyManager()
-        hotkeyManager.monitoredKeyCode = CGKeyCode(appSettings.hotkeyKeyCode)
+        hotkeyManager.recordingHotkey = appSettings.recordingHotkey
 
         hotkeyManager.onHotkeyDown = { [weak self] in
             // Everything on main thread: captureTarget() does AX IPC, startRecording() touches
@@ -91,10 +91,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        appSettings.$hotkeyKeyCode
+        appSettings.$recordingHotkey
             .dropFirst()
-            .sink { [weak self] keyCode in
-                self?.hotkeyManager.monitoredKeyCode = CGKeyCode(keyCode)
+            .sink { [weak self] hotkey in
+                self?.hotkeyManager.recordingHotkey = hotkey
             }
             .store(in: &cancellables)
 

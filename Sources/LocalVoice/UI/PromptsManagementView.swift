@@ -201,6 +201,10 @@ struct PromptsManagementView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Instruction")
                             .font(.subheadline.weight(.semibold))
+                        Text("This is the editable task only. At runtime LocalVoice adds language, app context, safety rules, and the quoted dictation.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         TextEditor(text: $draftInstruction)
                             .font(.system(size: 13))
                             .scrollContentBackground(.hidden)
@@ -221,7 +225,7 @@ struct PromptsManagementView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("Shortcut")
                                 .font(.subheadline.weight(.semibold))
-                            Text("Use while recording with Right Command + number.")
+                            Text("Use while recording by pressing the number key.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -238,6 +242,30 @@ struct PromptsManagementView: View {
                         .frame(width: 110)
                         .onChange(of: draftKeyNumber) { _, _ in commitDraft() }
                     }
+                }
+            }
+
+            LVPanel {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Runtime prompt preview")
+                        .font(.subheadline.weight(.semibold))
+                    ScrollView {
+                        Text(runtimePromptPreview(for: prompt))
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 150)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(LVStyle.groupedBackground.opacity(0.45))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(LVStyle.separator, lineWidth: 0.5)
+                    )
                 }
             }
 
@@ -295,6 +323,24 @@ struct PromptsManagementView: View {
         promptStore.update(updated)
     }
 
+    private func runtimePromptPreview(for prompt: LLMPrompt) -> String {
+        let previewPrompt = LLMPrompt(
+            id: prompt.id,
+            name: draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? prompt.name : draftName,
+            instruction: draftInstruction,
+            isPreset: prompt.isPreset,
+            keyNumber: draftKeyNumber
+        )
+
+        return PromptComposer.compose(
+            transcript: "Example dictated text appears here.",
+            prompt: previewPrompt,
+            appContext: "Active App",
+            detectedLanguage: nil,
+            modelID: settings.llmModel
+        )
+    }
+
     private func addNewPrompt() {
         let newPrompt = LLMPrompt(
             id: UUID(),
@@ -328,8 +374,6 @@ private struct PromptShortcutChip: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "command")
-                .font(.system(size: 10, weight: .semibold))
             Text("\(number)")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
         }

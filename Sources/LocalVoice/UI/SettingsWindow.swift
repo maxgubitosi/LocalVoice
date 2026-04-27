@@ -123,7 +123,7 @@ struct SettingsView: View {
                         Text(permissions.allGranted ? "Ready" : "Needs setup")
                             .font(.subheadline.weight(.semibold))
                     }
-                    Text("Hold Right Command to record in any focused text field.")
+                    Text("Hold \(settings.recordingHotkey.label) to record in any focused text field.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -195,7 +195,7 @@ struct SettingsView: View {
                         Text("Recording workflow")
                             .font(.headline)
                         Spacer()
-                        LVBadge("Right Command", systemImage: "command", tint: LVStyle.accent)
+                        LVBadge(settings.recordingHotkey.label, systemImage: settings.recordingHotkey.systemImage, tint: LVStyle.accent)
                     }
                     HStack(spacing: 8) {
                         LVKeyCap("Hold")
@@ -211,7 +211,7 @@ struct SettingsView: View {
                         Text("text appears")
                             .font(.subheadline.weight(.medium))
                     }
-                    Text("Double-tap Right Command to latch recording. While recording, press 1-9 to temporarily switch prompts.")
+                    Text("Double-tap \(settings.recordingHotkey.label) to latch recording. While recording, press 1-9 to temporarily switch prompts.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -246,6 +246,22 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     Text("System follows your macOS language. Auto can be less reliable for very short clips.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LVPanel {
+                VStack(alignment: .leading, spacing: 12) {
+                    settingLabel("Recording hotkey")
+                    Picker("Recording Hotkey", selection: $settings.recordingHotkey) {
+                        ForEach(RecordingHotkey.allCases) { hotkey in
+                            Text(hotkey.label).tag(hotkey)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text("Prompt shortcuts stay simple: while recording, press 1-9 to temporarily switch prompts.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -308,7 +324,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Text("Hold Right Command and press a number key during recording to temporarily use that prompt.")
+                    Text("While recording, press a number key to temporarily use that prompt.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -340,7 +356,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             LVSectionHeader(
                 "Prompts",
-                subtitle: "Use presets for quick rewriting, or create your own prompt shortcuts for Right Command + number."
+                subtitle: "Use presets for quick rewriting, or create your own number shortcuts for active recordings."
             )
 
             LVPanel {
@@ -445,7 +461,7 @@ struct SettingsView: View {
         }
         return (
             "Ready for local dictation",
-            "Hold Right Command, speak, and release. LocalVoice will insert the result into the active app.",
+            "Hold \(settings.recordingHotkey.label), speak, and release. LocalVoice will insert the result into the active app.",
             "checkmark.circle.fill",
             LVStyle.ready
         )
@@ -583,8 +599,11 @@ private struct MLXModelRow: View {
                     if isDownloaded {
                         LVBadge("Local", systemImage: "checkmark", tint: LVStyle.ready)
                     }
+                    if model.isExperimental {
+                        LVBadge("Experimental", systemImage: "flask", tint: LVStyle.warning)
+                    }
                 }
-                Text("\(model.speedLabel) · \(model.paramCount) · \(String(format: "%.1f", model.estimatedRAMGB)) GB RAM · \(String(format: "%.1f", model.downloadSizeGB)) GB download")
+                Text("\(model.qualityLabel) · \(model.family) · \(model.license) · \(String(format: "%.1f", model.estimatedRAMGB)) GB RAM · \(String(format: "%.1f", model.downloadSizeGB)) GB download")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let progress {
@@ -660,7 +679,7 @@ private struct PromptSummaryRow: View {
                 Spacer()
 
                 if let keyNumber = prompt.keyNumber {
-                    LVKeyCap("⌘ \(keyNumber)")
+                    LVKeyCap("\(keyNumber)")
                 }
             }
             .padding(10)

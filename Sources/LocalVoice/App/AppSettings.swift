@@ -49,8 +49,8 @@ final class AppSettings: ObservableObject {
     @Published var whisperModel: String {
         didSet { UserDefaults.standard.set(whisperModel, forKey: "whisperModel") }
     }
-    @Published var hotkeyKeyCode: UInt16 {
-        didSet { UserDefaults.standard.set(Int(hotkeyKeyCode), forKey: "hotkeyKeyCode") }
+    @Published var recordingHotkey: RecordingHotkey {
+        didSet { UserDefaults.standard.set(recordingHotkey.rawValue, forKey: "recordingHotkey") }
     }
     @Published var transcriptionLanguage: TranscriptionLanguage {
         didSet { UserDefaults.standard.set(transcriptionLanguage.rawValue, forKey: "transcriptionLanguage") }
@@ -67,18 +67,36 @@ final class AppSettings: ObservableObject {
         "large-v3-turbo": "openai_whisper-large-v3_turbo",
     ]
 
+    private static let llmModelMigrations: [String: String] = [
+        "mlx-community/Qwen3.5-2B-MLX-4bit": "mlx-community/Qwen3-1.7B-4bit",
+        "mlx-community/Qwen3.5-4B-MLX-4bit": "mlx-community/Qwen3-4B-4bit",
+        "mlx-community/Qwen3.5-9B-MLX-4bit": "mlx-community/Qwen3-8B-4bit",
+        "mlx-community/Qwen3.5-27B-4bit": "mlx-community/Qwen3-8B-4bit",
+    ]
+
     init() {
         let rawMode = UserDefaults.standard.string(forKey: "mode") ?? ""
         let migratedMode = rawMode == "LLM Rewrite" ? "Refine" : rawMode
         self.mode = AppMode(rawValue: migratedMode) ?? .directTranscription
-        self.llmModel = UserDefaults.standard.string(forKey: "llmModel")
+        let savedLLMModel = UserDefaults.standard.string(forKey: "llmModel")
             ?? UserDefaults.standard.string(forKey: "ollamaModel")
-            ?? DeviceCapability.recommendedMLXModel
+        let migratedLLMModel = savedLLMModel.map { AppSettings.llmModelMigrations[$0] ?? $0 }
+        if let migratedLLMModel, MLXModelCatalog.model(id: migratedLLMModel) != nil {
+            self.llmModel = migratedLLMModel
+        } else {
+            self.llmModel = DeviceCapability.recommendedMLXModel
+        }
         let savedModel = UserDefaults.standard.string(forKey: "whisperModel") ?? "openai_whisper-large-v3_turbo"
         self.whisperModel = AppSettings.modelMigrations[savedModel] ?? savedModel
-        let saved = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
-        // Default is Right Command (0x36 = 54). Value 63 was an old non-functional default — treat as unset.
-        self.hotkeyKeyCode = (saved > 0 && saved != 63) ? UInt16(saved) : 54
+        if let rawHotkey = UserDefaults.standard.string(forKey: "recordingHotkey"),
+           let savedHotkey = RecordingHotkey(rawValue: rawHotkey) {
+            self.recordingHotkey = savedHotkey
+        } else {
+            let savedKeyCode = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
+            let migratedHotkey = RecordingHotkey.fromLegacyKeyCode(UInt16(savedKeyCode)) ?? .rightCommand
+            self.recordingHotkey = migratedHotkey
+            UserDefaults.standard.set(migratedHotkey.rawValue, forKey: "recordingHotkey")
+        }
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
         self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .system
         self.saveTranscribedText = UserDefaults.standard.bool(forKey: "saveTranscribedText")

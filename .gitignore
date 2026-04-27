@@ -43,7 +43,9 @@ Docs/
 
 # Benchmark and Tests
 Benchmark/
-Tests/
+Tests/*
+!Tests/LocalVoiceTests/
+!Tests/LocalVoiceTests/**
 
 # Ignore all .m4a files
 *.m4a

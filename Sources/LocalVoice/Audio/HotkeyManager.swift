@@ -2,7 +2,7 @@ import Carbon
 import AppKit
 import OSLog
 
-/// Monitors Right Command via CGEventTap. Two recording modes:
+/// Monitors the selected recording modifier via CGEventTap. Two recording modes:
 /// - Hold: press and hold to record, release to transcribe.
 /// - Latch: double-tap to start recording hands-free, tap again to stop and transcribe.
 final class HotkeyManager {
@@ -22,7 +22,7 @@ final class HotkeyManager {
     private var retryTimer: Timer?
     private var hasLoggedPermissionError = false
 
-    var monitoredKeyCode: CGKeyCode = 0x36 // kVK_RightCommand
+    var recordingHotkey: RecordingHotkey = .rightCommand
 
     // MARK: - State machine
 
@@ -122,10 +122,10 @@ final class HotkeyManager {
 
         if type == .flagsChanged {
             let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-            guard keyCode == monitoredKeyCode else {
+            guard keyCode == recordingHotkey.keyCode else {
                 return Unmanaged.passUnretained(event)
             }
-            let isDown = event.flags.contains(.maskCommand)
+            let isDown = event.flags.contains(recordingHotkey.pressedFlag)
             if isDown && !physicalKeyDown {
                 physicalKeyDown = true
                 DispatchQueue.main.async { self.handleKeyDown() }

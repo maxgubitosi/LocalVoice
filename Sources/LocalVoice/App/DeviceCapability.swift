@@ -3,24 +3,20 @@ import Foundation
 enum DeviceCapability {
 
     static var recommendedMLXModel: String {
-        let gen = chipGenerationNumber
         let ram = physicalMemoryGB
-        switch (gen, ram) {
-        case (4, 32...):    return "mlx-community/Qwen3.5-27B-4bit"
-        case (3..., 16...): return "mlx-community/Qwen3.5-9B-MLX-4bit"
-        case (_, 16...):    return "mlx-community/Qwen3.5-4B-MLX-4bit"
-        default:            return "mlx-community/Qwen3.5-2B-MLX-4bit"
+        switch ram {
+        case 24...: return "mlx-community/Qwen3-8B-4bit"
+        case 16...: return "mlx-community/Qwen3-4B-4bit"
+        default:    return "mlx-community/Qwen3-1.7B-4bit"
         }
     }
 
     static var recommendedMLXModelLabel: String {
-        let gen = chipGenerationNumber
         let ram = physicalMemoryGB
-        switch (gen, ram) {
-        case (4, 32...):    return "Best quality — your Mac can handle this"
-        case (3..., 16...): return "High quality — recommended for your Mac"
-        case (_, 16...):    return "Balanced — recommended for your Mac"
-        default:            return "Fast — recommended for your Mac"
+        switch ram {
+        case 24...: return "Higher quality — recommended for your Mac"
+        case 16...: return "Balanced — recommended for your Mac"
+        default:    return "Fast — recommended for your Mac"
         }
     }
 

@@ -72,7 +72,7 @@ struct HistoryView: View {
                 LVEmptyState(
                     systemImage: "clock.arrow.circlepath",
                     title: "No recordings yet",
-                    message: "Use Right Command to dictate. Your local history and stats will appear here."
+                    message: "Use your recording hotkey to dictate. Your local history and stats will appear here."
                 )
             } else if filteredRecords.isEmpty {
                 LVEmptyState(
@@ -184,6 +184,18 @@ private struct StatsStrip: View {
         return sum / Double(valid.count)
     }
 
+    private var medianWhisper: Double? {
+        median(records.compactMap(\.transcriptionLatencySeconds))
+    }
+
+    private var medianRefine: Double? {
+        median(records.compactMap(\.llmLatencySeconds))
+    }
+
+    private var medianTotal: Double? {
+        median(records.compactMap(\.processingLatencySeconds))
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             CompactStat(label: "Recordings", value: "\(records.count)")
@@ -191,7 +203,33 @@ private struct StatsStrip: View {
             if let avgWPM {
                 CompactStat(label: "Avg WPM", value: String(format: "%.0f", avgWPM))
             }
+            if let medianWhisper {
+                CompactStat(label: "Whisper", value: formatSeconds(medianWhisper))
+            }
+            if let medianRefine {
+                CompactStat(label: "Refine", value: formatSeconds(medianRefine))
+            }
+            if let medianTotal {
+                CompactStat(label: "Total", value: formatSeconds(medianTotal))
+            }
         }
+    }
+
+    private func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let midpoint = sorted.count / 2
+        if sorted.count.isMultiple(of: 2) {
+            return (sorted[midpoint - 1] + sorted[midpoint]) / 2
+        }
+        return sorted[midpoint]
+    }
+
+    private func formatSeconds(_ seconds: Double) -> String {
+        if seconds < 1 {
+            return "\(Int((seconds * 1000).rounded()))ms"
+        }
+        return String(format: "%.1fs", seconds)
     }
 }
 

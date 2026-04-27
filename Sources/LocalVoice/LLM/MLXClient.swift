@@ -33,22 +33,20 @@ final class MLXClient: ObservableObject {
         appContext: String?,
         detectedLanguage: String?
     ) async throws -> String {
-        var instruction = prompt.instruction
-        if let lang = detectedLanguage,
-           let displayName = Locale.current.localizedString(forLanguageCode: lang) {
-            instruction += "\nRespond in \(displayName). Do NOT translate."
-        } else {
-            instruction += "\nRespond in the same language as the user's dictation. Do NOT translate."
-        }
-        if let ctx = appContext {
-            instruction += "\nThe user is dictating into \(ctx). Preserve appropriate terminology and conventions."
-        }
-        instruction += "\n\nUser's dictation: \"\(transcript)\""
-        instruction += " /no_think"
-        return try await generate(prompt: instruction)
+        let instruction = PromptComposer.compose(
+            transcript: transcript,
+            prompt: prompt,
+            appContext: appContext,
+            detectedLanguage: detectedLanguage,
+            modelID: modelID
+        )
+        return try await generate(
+            prompt: instruction,
+            maxTokens: PromptComposer.maxTokens(for: transcript)
+        )
     }
 
-    func generate(prompt: String) async throws -> String {
+    func generate(prompt: String, maxTokens: Int? = nil) async throws -> String {
         if loadedModelID != modelID || session == nil {
             Logger.llm.info("Loading MLX model: \(self.modelID)")
             let newContainer = try await loadModelContainer(
@@ -64,6 +62,11 @@ final class MLXClient: ObservableObject {
         }
         guard let session else { throw MLXClientError.modelNotLoaded }
         await session.clear()
+        session.generateParameters = GenerateParameters(
+            maxTokens: maxTokens,
+            temperature: 0,
+            topP: 1
+        )
         let response = try await session.respond(to: prompt)
         return response.trimmingCharacters(in: .whitespacesAndNewlines)
     }

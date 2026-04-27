@@ -38,5 +38,9 @@ let package = Package(
                 ])
             ]
         ),
+        .testTarget(
+            name: "LocalVoiceTests",
+            dependencies: ["LocalVoice"]
+        ),
     ]
 )
