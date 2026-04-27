@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 final class FirstRunWindowController: NSWindowController {
     convenience init(
@@ -40,6 +41,10 @@ struct FirstRunView: View {
     var isMLXDownloaded: Bool { mlxModelManager.isDownloaded(mlxModelID) }
 
     var allDone: Bool { transcriptionEngine.isModelLoaded && isMLXDownloaded }
+    @State private var permissions = PermissionManager.current()
+    private let permissionsRefreshTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
+
+    var readyToFinish: Bool { allDone && permissions.allGranted }
 
     var body: some View {
         VStack(spacing: 28) {
@@ -71,17 +76,29 @@ struct FirstRunView: View {
 
             if allDone {
                 VStack(spacing: 12) {
-                    Label("Ready to use", systemImage: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.headline)
-                    Text("Hold Right ⌘ to record. Release to transcribe.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button("Get Started") {
-                        onComplete()
+                    PermissionsChecklistView()
+                        .padding(12)
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .cornerRadius(10)
+
+                    if readyToFinish {
+                        Label("Ready to use", systemImage: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.headline)
+                        Text("Hold Right ⌘ to record. Release to transcribe.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button("Get Started") {
+                            onComplete()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    } else {
+                        Text("Grant all permissions first. If Input Monitoring does not list LocalVoice, add it manually with +.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                 }
             } else {
                 Text("Downloading… Keep LocalVoice open.")
@@ -91,6 +108,8 @@ struct FirstRunView: View {
         }
         .padding(32)
         .frame(width: 480)
+        .onAppear { permissions = PermissionManager.current() }
+        .onReceive(permissionsRefreshTimer) { _ in permissions = PermissionManager.current() }
     }
 
     private func mlxModelDisplayName(_ id: String) -> String {

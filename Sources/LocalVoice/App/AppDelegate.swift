@@ -132,11 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func requestPermissions() {
-        AVCaptureDevice.requestAccess(for: .audio) { _ in }
-
-        // Accessibility — prompt if not already granted
-        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true]
-        AXIsProcessTrustedWithOptions(options)
+        PermissionManager.requestMissingPermissions()
     }
 
     private func cancelRecording() {

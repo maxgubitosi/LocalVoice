@@ -18,6 +18,10 @@ final class MenuBarManager: NSObject {
     private let promptStore: PromptStore
     private weak var delegate: MenuBarDelegate?
     private weak var updaterController: SPUStandardUpdaterController?
+    private var permissionPollTimer: Timer?
+    private var isRecording = false
+    private var isLoading = false
+    private var hasMissingPermissions = false
 
     private var statusButton: NSStatusBarButton? { statusItem.button }
 
@@ -30,27 +34,26 @@ final class MenuBarManager: NSObject {
         super.init()
         configureButton()
         buildMenu()
+        refreshPermissionsState()
+        startPermissionPolling()
     }
 
     private func configureButton() {
-        statusButton?.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "LocalVoice")
-        statusButton?.image?.isTemplate = true
+        updateStatusIcon()
     }
 
     func setLoading(_ loading: Bool) {
         DispatchQueue.main.async {
+            self.isLoading = loading
             self.statusButton?.appearsDisabled = loading
+            self.updateStatusIcon()
         }
     }
 
     func setRecording(_ recording: Bool) {
         DispatchQueue.main.async {
-            let symbolName = recording ? "waveform.circle.fill" : "waveform.circle"
-            self.statusButton?.image = NSImage(
-                systemSymbolName: symbolName,
-                accessibilityDescription: recording ? "Recording…" : "LocalVoice"
-            )
-            self.statusButton?.image?.isTemplate = true
+            self.isRecording = recording
+            self.updateStatusIcon()
         }
     }
 
@@ -58,6 +61,17 @@ final class MenuBarManager: NSObject {
 
     private func buildMenu() {
         let menu = NSMenu()
+
+        if hasMissingPermissions {
+            let permissionsWarning = NSMenuItem(
+                title: "⚠ Permissions required — open Settings…",
+                action: #selector(settingsSelected),
+                keyEquivalent: ""
+            )
+            permissionsWarning.target = self
+            menu.addItem(permissionsWarning)
+            menu.addItem(.separator())
+        }
 
         // Mode
         let modeItem = NSMenuItem(title: "Mode", action: nil, keyEquivalent: "")
@@ -200,5 +214,45 @@ final class MenuBarManager: NSObject {
 
     private func rebuildMenuCheckmarks() {
         buildMenu()
+    }
+
+    private func startPermissionPolling() {
+        permissionPollTimer?.invalidate()
+        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            self?.refreshPermissionsState()
+        }
+    }
+
+    private func refreshPermissionsState() {
+        DispatchQueue.main.async {
+            let missingNow = !PermissionManager.current().allGranted
+            guard missingNow != self.hasMissingPermissions else { return }
+            self.hasMissingPermissions = missingNow
+            self.updateStatusIcon()
+            self.buildMenu()
+        }
+    }
+
+    private func updateStatusIcon() {
+        let symbolName: String
+        let description: String
+
+        if hasMissingPermissions {
+            symbolName = "exclamationmark.triangle.fill"
+            description = "LocalVoice needs permissions"
+        } else if isRecording {
+            symbolName = "waveform.circle.fill"
+            description = "Recording…"
+        } else {
+            symbolName = "waveform.circle"
+            description = "LocalVoice"
+        }
+
+        statusButton?.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: description)
+        statusButton?.image?.isTemplate = true
+    }
+
+    deinit {
+        permissionPollTimer?.invalidate()
     }
 }

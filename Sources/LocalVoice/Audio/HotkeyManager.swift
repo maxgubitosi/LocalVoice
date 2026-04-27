@@ -19,6 +19,8 @@ final class HotkeyManager {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var physicalKeyDown = false
+    private var retryTimer: Timer?
+    private var hasLoggedPermissionError = false
 
     var monitoredKeyCode: CGKeyCode = 0x36 // kVK_RightCommand
 
@@ -44,6 +46,8 @@ final class HotkeyManager {
     // MARK: - Event tap
 
     private func setupEventTap() {
+        guard eventTap == nil else { return }
+
         let mask: CGEventMask =
             (1 << CGEventType.keyDown.rawValue) |
             (1 << CGEventType.keyUp.rawValue)   |
@@ -62,7 +66,11 @@ final class HotkeyManager {
         )
 
         guard let tap else {
-            Logger.hotkey.error("Failed to create event tap — check Input Monitoring permission")
+            if !hasLoggedPermissionError {
+                Logger.hotkey.error("Failed to create event tap — check Input Monitoring permission")
+                hasLoggedPermissionError = true
+            }
+            scheduleRetry()
             return
         }
 
@@ -71,6 +79,16 @@ final class HotkeyManager {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        retryTimer?.invalidate()
+        retryTimer = nil
+        hasLoggedPermissionError = false
+    }
+
+    private func scheduleRetry() {
+        guard retryTimer == nil else { return }
+        retryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.setupEventTap()
+        }
     }
 
     private func handleEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -174,8 +192,12 @@ final class HotkeyManager {
     }
 
     private func teardown() {
+        retryTimer?.invalidate()
+        retryTimer = nil
         doubleTapTimer?.invalidate()
         if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: false) }
         if let source = runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        eventTap = nil
+        runLoopSource = nil
     }
 }
