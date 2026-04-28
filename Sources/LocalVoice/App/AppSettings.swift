@@ -68,10 +68,16 @@ final class AppSettings: ObservableObject {
     ]
 
     private static let llmModelMigrations: [String: String] = [
-        "mlx-community/Qwen3.5-2B-MLX-4bit": "mlx-community/Qwen3-1.7B-4bit",
-        "mlx-community/Qwen3.5-4B-MLX-4bit": "mlx-community/Qwen3-4B-4bit",
-        "mlx-community/Qwen3.5-9B-MLX-4bit": "mlx-community/Qwen3-8B-4bit",
-        "mlx-community/Qwen3.5-27B-4bit": "mlx-community/Qwen3-8B-4bit",
+        "mlx-community/Qwen3.5-2B-MLX-4bit": "mlx-community/Qwen3.5-2B-OptiQ-4bit",
+        "mlx-community/Qwen3.5-4B-MLX-4bit": "mlx-community/gemma-4-e2b-it-4bit",
+        "mlx-community/Qwen3.5-9B-MLX-4bit": "mlx-community/gemma-4-e4b-it-4bit",
+        "mlx-community/Qwen3.5-27B-4bit": "mlx-community/gemma-4-e4b-it-4bit",
+        "mlx-community/Qwen3-1.7B-4bit": "mlx-community/Qwen3.5-2B-OptiQ-4bit",
+        "mlx-community/Qwen3-4B-4bit": "mlx-community/gemma-4-e2b-it-4bit",
+        "mlx-community/Qwen3-8B-4bit": "mlx-community/gemma-4-e4b-it-4bit",
+        "mlx-community/gemma-3n-E2B-it-lm-4bit": "mlx-community/gemma-4-e2b-it-4bit",
+        "mlx-community/gemma-3n-E4B-it-lm-4bit": "mlx-community/gemma-4-e4b-it-4bit",
+        "mlx-community/Llama-3.2-3B-Instruct-4bit": "mlx-community/Phi-4-mini-instruct-4bit",
     ]
 
     init() {

@@ -11,8 +11,14 @@ struct InsertionContext {
 
 /// Two-tier text insertion:
 ///   Tier 1 — kAXSelectedTextAttribute: inserts at cursor without reading existing content
-///   Tier 2 — NSPasteboard + Cmd+V: universal fallback
+///   Tier 2 — Unicode keyboard events: no clipboard access
 final class TextInserter {
+    private enum KeyboardFallback {
+        static let activationPollInterval: TimeInterval = 0.05
+        static let activationTimeout: TimeInterval = 0.8
+        static let maxUTF16UnitsPerEvent = 64
+    }
+
     private var capturedElement: AXUIElement?
     private var capturedApp: AXUIElement?
     private var capturedIsSecure: Bool = false
@@ -83,60 +89,35 @@ final class TextInserter {
                     Logger.textInserter.debug("AX insert verified")
                     return
                 }
-                Logger.textInserter.warning("AX reported success but text not found in field — falling back to pasteboard")
+                Logger.textInserter.warning("AX reported success but text not found in field — falling back to keyboard events")
             } else {
-                Logger.textInserter.warning("AX insert failed (error: \(result.rawValue)) — falling back to pasteboard")
+                Logger.textInserter.warning("AX insert failed (error: \(result.rawValue)) — falling back to keyboard events")
             }
         } else {
-            Logger.textInserter.debug("AX not available — using pasteboard")
+            Logger.textInserter.debug("AX not available — using keyboard events")
         }
 
-        pasteboardInsert(text: text, targetApp: app)
+        keyboardInsert(text: text, targetApp: app)
     }
 
-    // MARK: - Tier 2: Pasteboard + Cmd+V
+    // MARK: - Tier 2: Unicode Keyboard Events
 
-    private func pasteboardInsert(text: String, targetApp: AXUIElement?) {
-        let pasteboard = NSPasteboard.general
-        let previousContents: [(String, Data)] = pasteboard.pasteboardItems?.compactMap { item in
-            guard let type = item.types.first, let data = item.data(forType: type) else { return nil }
-            return (type.rawValue, data)
-        } ?? []
-
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
-
-        var activationDelay = 0.0
+    private func keyboardInsert(text: String, targetApp: AXUIElement?) {
+        var targetPID: pid_t?
         if let targetApp {
             var pid: pid_t = 0
             if AXUIElementGetPid(targetApp, &pid) == .success,
                let runningApp = NSRunningApplication(processIdentifier: pid) {
-                Logger.textInserter.debug("Pasteboard: activating \(runningApp.localizedName ?? "app"), sending Cmd+V")
+                Logger.textInserter.debug("Keyboard fallback: activating \(runningApp.localizedName ?? "app")")
                 runningApp.activate(options: [])
-                activationDelay = 0.15
+                targetPID = pid
             }
         } else {
-            Logger.textInserter.debug("Pasteboard: no target app captured — sending Cmd+V")
+            Logger.textInserter.debug("Keyboard fallback: no target app captured")
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + activationDelay) {
-            let source = CGEventSource(stateID: .hidSystemState)
-            let vKey: CGKeyCode = 0x09
-            let down = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true)
-            let up   = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false)
-            down?.flags = .maskCommand
-            up?.flags   = .maskCommand
-            down?.post(tap: .cghidEventTap)
-            up?.post(tap: .cghidEventTap)
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                guard !previousContents.isEmpty else { return }
-                pasteboard.clearContents()
-                for (typeString, data) in previousContents {
-                    pasteboard.setData(data, forType: NSPasteboard.PasteboardType(typeString))
-                }
-                Logger.textInserter.debug("Clipboard restored")
-            }
+        waitForTargetActivation(pid: targetPID, startedAt: Date()) {
+            self.typeUnicode(text)
         }
     }
 
@@ -152,5 +133,62 @@ final class TextInserter {
         var ref: AnyObject?
         guard AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &ref) == .success else { return nil }
         return ref as? String
+    }
+
+    private func waitForTargetActivation(pid: pid_t?, startedAt: Date, _ completion: @escaping () -> Void) {
+        guard let pid else {
+            DispatchQueue.main.async(execute: completion)
+            return
+        }
+
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid ||
+            Date().timeIntervalSince(startedAt) >= KeyboardFallback.activationTimeout {
+            completion()
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + KeyboardFallback.activationPollInterval) {
+            self.waitForTargetActivation(pid: pid, startedAt: startedAt, completion)
+        }
+    }
+
+    private func typeUnicode(_ text: String) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        for chunk in unicodeChunks(for: text) {
+            let utf16 = Array(chunk.utf16)
+            utf16.withUnsafeBufferPointer { buffer in
+                guard let baseAddress = buffer.baseAddress else { return }
+                let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
+                let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
+                down?.keyboardSetUnicodeString(stringLength: buffer.count, unicodeString: baseAddress)
+                down?.post(tap: .cghidEventTap)
+                up?.post(tap: .cghidEventTap)
+            }
+        }
+    }
+
+    private func unicodeChunks(for text: String) -> [String] {
+        var chunks: [String] = []
+        var current = ""
+        var currentCount = 0
+
+        for character in text {
+            let characterString = String(character)
+            let characterCount = characterString.utf16.count
+            if currentCount > 0,
+               currentCount + characterCount > KeyboardFallback.maxUTF16UnitsPerEvent {
+                chunks.append(current)
+                current = ""
+                currentCount = 0
+            }
+
+            current.append(character)
+            currentCount += characterCount
+        }
+
+        if !current.isEmpty {
+            chunks.append(current)
+        }
+        return chunks
     }
 }

@@ -207,22 +207,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     var llmLatency: Double? = nil
 
                     if self.appSettings.mode == .llmRewrite {
-                        await MainActor.run { self.recordingOverlay.showRefining(transcript: output.text) }
+                        await MainActor.run {
+                            self.recordingOverlay.showRefining(promptName: activePrompt.name, transcript: output.text)
+                        }
                         let llmStart = Date()
-                        // Prefer the user-configured language over Whisper's auto-detection (which can misidentify).
-                        let languageForLLM = self.appSettings.transcriptionLanguage.whisperCode ?? output.language
-                        Logger.pipeline.debug("Language for rewrite: \(languageForLLM ?? "unknown")")
-                        finalText = try await self.mlxClient.rewrite(
+                        let languageForLLM = output.language
+                        Logger.pipeline.debug("Language for rewrite: \(languageForLLM ?? "unknown", privacy: .public)")
+                        let refinedText = try await self.mlxClient.rewrite(
                             transcript: output.text,
                             prompt: activePrompt,
                             appContext: self.recordingTargetApp?.name,
                             detectedLanguage: languageForLLM
                         )
+                        finalText = RefineOutputSanitizer.clean(refinedText)
                         llmLatency = Date().timeIntervalSince(llmStart)
                     } else {
                         finalText = output.text
                     }
 
+                    try Task.checkCancellation()
                     Logger.pipeline.debug("Inserting: '\(finalText)'")
                     let startTime = self.recordingStartTime
                     let targetApp = self.recordingTargetApp
@@ -235,9 +238,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let capturedTranscriptionLatency = transcriptionLatency
                     let audioDuration = Double(buffer.count) / 16000.0
                     let capturedPromptName: String? = mode == .llmRewrite ? activePrompt.name : nil
+                    let capturedTranscribedText = saveText ? output.text : nil
                     let capturedOriginalText = saveText ? output.text : nil
                     let capturedRefinedText = saveText && mode == .llmRewrite ? finalText : nil
-                    let capturedFinalText = saveText ? finalText : nil
 
                     await MainActor.run {
                         let processingLatency = Date().timeIntervalSince(processingStart)
@@ -257,7 +260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 whisperModel: whisperModel,
                                 llmModel: mode == .llmRewrite ? llmModel : nil,
                                 llmLatencySeconds: capturedLLMLatency,
-                                transcribedText: capturedFinalText,
+                                transcribedText: capturedTranscribedText,
                                 originalText: capturedOriginalText,
                                 refinedText: capturedRefinedText,
                                 transcriptionLatencySeconds: capturedTranscriptionLatency,

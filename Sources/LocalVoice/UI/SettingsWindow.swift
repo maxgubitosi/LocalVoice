@@ -184,7 +184,7 @@ struct SettingsView: View {
                 LVPanel { LVMetric(label: "Mode", value: settings.mode.rawValue, systemImage: modeSymbol, tint: modeTint) }
                 LVPanel { LVMetric(label: "Language", value: settings.transcriptionLanguage.displayName, systemImage: "globe", tint: .cyan) }
                 LVPanel { LVMetric(label: "Prompt", value: activePrompt.name, systemImage: "text.badge.checkmark", tint: .purple) }
-                LVPanel { LVMetric(label: "Whisper", value: transcriptionEngine.isModelLoaded ? "Loaded" : "Loading", systemImage: "waveform", tint: transcriptionEngine.isModelLoaded ? LVStyle.ready : LVStyle.warning) }
+                LVPanel { LVMetric(label: overviewWhisperModelName, value: "Whisper", systemImage: "waveform", tint: transcriptionEngine.isModelLoaded ? LVStyle.ready : LVStyle.warning) }
                 LVPanel { LVMetric(label: "Refine model", value: selectedMLXModel?.displayName ?? "Selected", systemImage: "memorychip", tint: isSelectedMLXDownloaded ? LVStyle.ready : LVStyle.warning) }
                 LVPanel { LVMetric(label: "Permissions", value: permissions.allGranted ? "Granted" : "Missing", systemImage: "lock.shield", tint: permissions.allGranted ? LVStyle.ready : LVStyle.warning) }
             }
@@ -428,6 +428,18 @@ struct SettingsView: View {
 
     private var selectedMLXModel: MLXModelInfo? {
         MLXModelCatalog.models.first { $0.id == settings.llmModel }
+    }
+
+    private var overviewWhisperModelName: String {
+        switch settings.whisperModel {
+        case "openai_whisper-large-v3_turbo": return "Large V3 Turbo"
+        case "large-v3": return "Large V3"
+        default:
+            return TranscriptionEngine.displayName(for: settings.whisperModel)
+                .split(separator: "-")
+                .map { $0.capitalized }
+                .joined(separator: " ")
+        }
     }
 
     private var isSelectedMLXDownloaded: Bool {

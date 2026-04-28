@@ -21,7 +21,7 @@ final class TranscriptionRecord {
     var promptName: String?
 
     var finalText: String? {
-        transcribedText ?? refinedText ?? originalText
+        refinedText ?? transcribedText ?? originalText
     }
 
     init(

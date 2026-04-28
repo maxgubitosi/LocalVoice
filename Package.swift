@@ -38,6 +38,16 @@ let package = Package(
                 ])
             ]
         ),
+        .executableTarget(
+            name: "MLXSmokeTest",
+            dependencies: [
+                .product(name: "MLXLLM", package: "mlx-swift-lm"),
+                .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
+                .product(name: "Hub", package: "swift-transformers"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
+            ],
+            path: "Tools/MLXSmokeTest"
+        ),
         .testTarget(
             name: "LocalVoiceTests",
             dependencies: ["LocalVoice"]

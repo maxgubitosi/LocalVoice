@@ -160,6 +160,34 @@ final class PromptStore: ObservableObject {
             instruction: "Rewrite in a professional, formal register suitable for business emails or official documents. Preserve all content and factual details exactly. Eliminate casual language, contractions, and colloquialisms. Return ONLY the rewritten text, no explanations or quotation marks.",
             isPreset: true,
             keyNumber: 4
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "Clean",
+            instruction: "Clean up dictated text for immediate insertion. Fix punctuation, casing, obvious grammar issues, repeated words, and filler words. Keep the speaker's intent, voice, vocabulary, facts, names, numbers, URLs, code, and commands intact. Return only the final text, with no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 1
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            name: "Correct ASR",
+            instruction: "Correct only clear speech recognition mistakes such as wrong homophones, garbled words, missing punctuation, or obvious substitutions. Do not rewrite, summarize, embellish, or improve style. Preserve every word that could plausibly be what the speaker said. Return only the corrected text, with no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 2
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "Clean",
+            instruction: "Clean up dictated text for immediate insertion. Fix punctuation, casing, obvious grammar issues, repeated words, filler words, and likely ASR mistakes when the transcript is semantically odd but a near-sounding correction is clearly more plausible. Restore Spanish opening question/exclamation marks when needed. Keep the speaker's intent, voice, vocabulary, facts, names, numbers, URLs, code, and commands intact. Return only the final text, with no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 1
+        ),
+        LLMPrompt(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            name: "Correct ASR",
+            instruction: "Recover what the speaker most likely said by correcting clear speech-recognition mistakes: wrong homophones, near-homophones, garbled words, wrong word boundaries, missing punctuation, and obvious substitutions. Use surrounding context and app context to choose the semantically plausible phrase. For example, in Spanish app/model context, \"cómo están dando\" is likely \"cómo están andando\" or \"cómo está andando\". Do not summarize, embellish, or improve style beyond ASR correction. Preserve every word that could plausibly be what the speaker said. Return only the corrected text, with no explanations or quotation marks.",
+            isPreset: true,
+            keyNumber: 2
         )
     ]
 }

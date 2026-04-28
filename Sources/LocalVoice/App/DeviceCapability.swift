@@ -5,18 +5,18 @@ enum DeviceCapability {
     static var recommendedMLXModel: String {
         let ram = physicalMemoryGB
         switch ram {
-        case 24...: return "mlx-community/Qwen3-8B-4bit"
-        case 16...: return "mlx-community/Qwen3-4B-4bit"
-        default:    return "mlx-community/Qwen3-1.7B-4bit"
+        case 24...: return "mlx-community/gemma-4-e4b-it-4bit"
+        case 16...: return "mlx-community/gemma-4-e2b-it-4bit"
+        default:    return "mlx-community/Qwen3.5-2B-OptiQ-4bit"
         }
     }
 
     static var recommendedMLXModelLabel: String {
         let ram = physicalMemoryGB
         switch ram {
-        case 24...: return "Higher quality — recommended for your Mac"
-        case 16...: return "Balanced — recommended for your Mac"
-        default:    return "Fast — recommended for your Mac"
+        case 24...: return "SOTA quality — recommended for your Mac"
+        case 16...: return "SOTA fast — recommended for your Mac"
+        default:    return "Tiny SOTA — recommended for your Mac"
         }
     }
 

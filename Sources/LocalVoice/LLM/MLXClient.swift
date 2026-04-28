@@ -33,6 +33,10 @@ final class MLXClient: ObservableObject {
         appContext: String?,
         detectedLanguage: String?
     ) async throws -> String {
+        guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return ""
+        }
+
         let instruction = PromptComposer.compose(
             transcript: transcript,
             prompt: prompt,
@@ -40,9 +44,17 @@ final class MLXClient: ObservableObject {
             detectedLanguage: detectedLanguage,
             modelID: modelID
         )
+        let maxTokens = PromptComposer.maxTokens(for: transcript)
+        DebugPromptLogger.logIfEnabled(
+            prompt: instruction,
+            modelID: modelID,
+            promptName: prompt.name,
+            languageCode: detectedLanguage,
+            maxTokens: maxTokens
+        )
         return try await generate(
             prompt: instruction,
-            maxTokens: PromptComposer.maxTokens(for: transcript)
+            maxTokens: maxTokens
         )
     }
 
@@ -69,6 +81,34 @@ final class MLXClient: ObservableObject {
         )
         let response = try await session.respond(to: prompt)
         return response.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+private enum DebugPromptLogger {
+    static func logIfEnabled(
+        prompt: String,
+        modelID: String,
+        promptName: String,
+        languageCode: String?,
+        maxTokens: Int
+    ) {
+        guard isEnabled else { return }
+
+        let header = """
+
+        ===== LocalVoice LLM Prompt =====
+        Model: \(modelID)
+        Prompt preset: \(promptName)
+        Transcription language code: \(languageCode ?? "unknown")
+        Max tokens: \(maxTokens)
+        """
+        let output = "\(header)\n\n\(prompt)\n===== End LocalVoice LLM Prompt =====\n"
+        Logger.llm.debug("\(output, privacy: .public)")
+        FileHandle.standardError.write(Data(output.utf8))
+    }
+
+    private static var isEnabled: Bool {
+        ProcessInfo.processInfo.environment["LOCALVOICE_DEBUG_PROMPTS"] == "1"
     }
 }
 

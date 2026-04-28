@@ -71,7 +71,7 @@ final class TranscriptionEngine: ObservableObject {
 
         let results = try await whisper.transcribe(audioArray: buffer, decodeOptions: options)
         let text = results.map { $0.text }.joined(separator: " ").trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-        return TranscriptionOutput(text: text, language: results.first?.language)
+        return TranscriptionOutput(text: text, language: results.first?.language ?? language)
     }
 
     // MARK: - Available models

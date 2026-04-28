@@ -38,12 +38,12 @@ Package.resolved
 # Claude AI memory (local only)
 memory/
 
-# Docs
-Docs/
+docs/
 
 # Benchmark and Tests
 Benchmark/
-Tests/*
+Tests/
+Tools/
 !Tests/LocalVoiceTests/
 !Tests/LocalVoiceTests/**
 
@@ -60,6 +60,3 @@ LocalVoice.zip
 # AI tooling (local only)
 .superpowers/
 .claude/
-
-# Internal development docs
-docs/superpowers/

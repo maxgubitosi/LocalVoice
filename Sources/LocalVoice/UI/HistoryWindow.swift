@@ -260,7 +260,6 @@ private struct CompactStat: View {
 
 private struct RecordRow: View {
     let record: TranscriptionRecord
-    @State private var showingOriginal = false
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -275,22 +274,27 @@ private struct RecordRow: View {
         return String(format: "%.0f wpm", value)
     }
 
+    private var isRefine: Bool {
+        record.mode == AppMode.llmRewrite.rawValue
+    }
+
+    private var whisperText: String? {
+        guard isRefine else { return nil }
+        return nonEmpty(record.originalText) ?? nonEmpty(record.transcribedText)
+    }
+
     private var finalText: String? {
-        record.finalText
+        if isRefine {
+            return nonEmpty(record.refinedText) ?? nonEmpty(record.transcribedText) ?? nonEmpty(record.originalText)
+        }
+        return nonEmpty(record.finalText)
     }
 
-    private var originalText: String? {
-        record.originalText
-    }
-
-    private var hasOriginalComparison: Bool {
-        guard record.mode == AppMode.llmRewrite.rawValue,
-              let original = originalText,
-              let final = finalText,
-              !original.isEmpty,
-              original != final
-        else { return false }
-        return true
+    private func nonEmpty(_ text: String?) -> String? {
+        guard let text,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return nil }
+        return text
     }
 
     var body: some View {
@@ -335,12 +339,32 @@ private struct RecordRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-                if let text = finalText, !text.isEmpty {
-                    if hasOriginalComparison {
-                        Text("Refined")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                if isRefine, let transcript = whisperText, let text = finalText {
+                    HistoryTextBlock(title: "Whisper transcript", text: transcript, isPrimary: false)
+                    Divider()
+                    HistoryTextBlock(title: "Final text", text: text, isPrimary: true)
+                    HStack {
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(text, forType: .string)
+                        } label: {
+                            Label("Copy Final", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(transcript, forType: .string)
+                        } label: {
+                            Label("Copy Transcript", systemImage: "waveform")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+
+                        Spacer()
                     }
+                } else if let text = finalText {
                     Text(text)
                         .font(.callout)
                         .foregroundStyle(.primary.opacity(0.82))
@@ -358,40 +382,7 @@ private struct RecordRow: View {
                         .buttonStyle(.borderless)
                         .controlSize(.small)
 
-                        if hasOriginalComparison {
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.16)) {
-                                    showingOriginal.toggle()
-                                }
-                            } label: {
-                                Label(showingOriginal ? "Hide Original" : "Show Original", systemImage: "text.viewfinder")
-                            }
-                            .buttonStyle(.borderless)
-                            .controlSize(.small)
-                        }
-
                         Spacer()
-                    }
-
-                    if hasOriginalComparison, showingOriginal, let originalText {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Original transcript")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                            Text(originalText)
-                                .font(.caption)
-                                .foregroundStyle(.primary.opacity(0.72))
-                                .textSelection(.enabled)
-                        }
-                        .padding(10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(LVStyle.groupedBackground.opacity(0.45))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(LVStyle.separator, lineWidth: 0.5)
-                        )
                     }
                 } else {
                     Text("Transcript content was not saved for this recording.")
@@ -407,6 +398,25 @@ private struct RecordRow: View {
             return "\(Int((seconds * 1000).rounded()))ms"
         }
         return String(format: "%.1fs", seconds)
+    }
+}
+
+private struct HistoryTextBlock: View {
+    let title: String
+    let text: String
+    let isPrimary: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(isPrimary ? .callout : .caption)
+                .foregroundStyle(.primary.opacity(isPrimary ? 0.84 : 0.68))
+                .lineLimit(isPrimary ? 4 : 3)
+                .textSelection(.enabled)
+        }
     }
 }
 

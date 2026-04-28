@@ -16,16 +16,67 @@ struct MLXModelInfo: Identifiable {
 enum MLXModelCatalog {
     static let models: [MLXModelInfo] = [
         MLXModelInfo(
-            id: "mlx-community/Qwen3-1.7B-4bit",
-            displayName: "Qwen3 1.7B (4-bit)",
-            family: "Qwen",
-            estimatedRAMGB: 1.5,
-            downloadSizeGB: 1.0,
-            qualityLabel: "Fast",
+            id: "mlx-community/gemma-4-e2b-it-4bit",
+            displayName: "Gemma 4 E2B Instruct (4-bit)",
+            family: "Gemma",
+            estimatedRAMGB: 4.5,
+            downloadSizeGB: 3.6,
+            qualityLabel: "SOTA fast",
             license: "Apache 2.0",
-            supportsNoThink: true,
-            sourceURL: "https://huggingface.co/mlx-community/Qwen3-1.7B-4bit",
+            supportsNoThink: false,
+            sourceURL: "https://huggingface.co/mlx-community/gemma-4-e2b-it-4bit",
             isExperimental: false
+        ),
+        MLXModelInfo(
+            id: "mlx-community/Qwen3.5-2B-OptiQ-4bit",
+            displayName: "Qwen3.5 2B OptiQ (4-bit)",
+            family: "Qwen",
+            estimatedRAMGB: 2.0,
+            downloadSizeGB: 1.4,
+            qualityLabel: "Tiny SOTA",
+            license: "Apache 2.0",
+            supportsNoThink: false,
+            sourceURL: "https://huggingface.co/mlx-community/Qwen3.5-2B-OptiQ-4bit",
+            isExperimental: false
+        ),
+        MLXModelInfo(
+            id: "mlx-community/Phi-4-mini-instruct-4bit",
+            displayName: "Phi-4 Mini Instruct (4-bit)",
+            family: "Phi",
+            estimatedRAMGB: 3.0,
+            downloadSizeGB: 2.2,
+            qualityLabel: "Fast reasoning",
+            license: "MIT",
+            supportsNoThink: false,
+            sourceURL: "https://huggingface.co/mlx-community/Phi-4-mini-instruct-4bit",
+            isExperimental: false
+        ),
+        MLXModelInfo(
+            id: "mlx-community/gemma-4-e4b-it-4bit",
+            displayName: "Gemma 4 E4B Instruct (4-bit)",
+            family: "Gemma",
+            estimatedRAMGB: 6.5,
+            downloadSizeGB: 5.2,
+            qualityLabel: "SOTA quality",
+            license: "Apache 2.0",
+            supportsNoThink: false,
+            sourceURL: "https://huggingface.co/mlx-community/gemma-4-e4b-it-4bit",
+            isExperimental: false
+        ),
+    ]
+
+    static let experimentalCandidates: [MLXModelInfo] = [
+        MLXModelInfo(
+            id: "mlx-community/Qwen3.5-4B-4bit",
+            displayName: "Qwen3.5 4B (4-bit)",
+            family: "Qwen",
+            estimatedRAMGB: 3.5,
+            downloadSizeGB: 3.0,
+            qualityLabel: "Experimental",
+            license: "Apache 2.0",
+            supportsNoThink: false,
+            sourceURL: "https://huggingface.co/mlx-community/Qwen3.5-4B-4bit",
+            isExperimental: true
         ),
         MLXModelInfo(
             id: "mlx-community/Qwen3-4B-4bit",
@@ -33,23 +84,11 @@ enum MLXModelCatalog {
             family: "Qwen",
             estimatedRAMGB: 3.0,
             downloadSizeGB: 2.3,
-            qualityLabel: "Balanced",
+            qualityLabel: "Experimental",
             license: "Apache 2.0",
             supportsNoThink: true,
             sourceURL: "https://huggingface.co/mlx-community/Qwen3-4B-4bit",
-            isExperimental: false
-        ),
-        MLXModelInfo(
-            id: "mlx-community/Qwen3-8B-4bit",
-            displayName: "Qwen3 8B (4-bit)",
-            family: "Qwen",
-            estimatedRAMGB: 5.5,
-            downloadSizeGB: 4.6,
-            qualityLabel: "Higher quality",
-            license: "Apache 2.0",
-            supportsNoThink: true,
-            sourceURL: "https://huggingface.co/mlx-community/Qwen3-8B-4bit",
-            isExperimental: false
+            isExperimental: true
         ),
         MLXModelInfo(
             id: "mlx-community/gemma-3-1b-it-qat-4bit",
@@ -57,49 +96,17 @@ enum MLXModelCatalog {
             family: "Gemma",
             estimatedRAMGB: 1.3,
             downloadSizeGB: 0.7,
-            qualityLabel: "Fast",
+            qualityLabel: "Legacy fallback",
             license: "Gemma",
             supportsNoThink: false,
             sourceURL: "https://huggingface.co/mlx-community/gemma-3-1b-it-qat-4bit",
-            isExperimental: false
-        ),
-        MLXModelInfo(
-            id: "mlx-community/gemma-3n-E2B-it-lm-4bit",
-            displayName: "Gemma 3n E2B Text (4-bit)",
-            family: "Gemma",
-            estimatedRAMGB: 3.2,
-            downloadSizeGB: 2.5,
-            qualityLabel: "Balanced",
-            license: "Gemma",
-            supportsNoThink: false,
-            sourceURL: "https://huggingface.co/mlx-community/gemma-3n-E2B-it-lm-4bit",
-            isExperimental: false
-        ),
-        MLXModelInfo(
-            id: "mlx-community/Llama-3.2-3B-Instruct-4bit",
-            displayName: "Llama 3.2 3B Instruct (4-bit)",
-            family: "Llama",
-            estimatedRAMGB: 2.5,
-            downloadSizeGB: 1.8,
-            qualityLabel: "Balanced",
-            license: "Llama 3.2",
-            supportsNoThink: false,
-            sourceURL: "https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit",
-            isExperimental: false
-        ),
-        MLXModelInfo(
-            id: "mlx-community/Phi-3.5-mini-instruct-4bit",
-            displayName: "Phi 3.5 Mini Instruct (4-bit)",
-            family: "Phi",
-            estimatedRAMGB: 3.0,
-            downloadSizeGB: 2.2,
-            qualityLabel: "Balanced",
-            license: "MIT",
-            supportsNoThink: false,
-            sourceURL: "https://huggingface.co/mlx-community/Phi-3.5-mini-instruct-4bit",
-            isExperimental: false
+            isExperimental: true
         ),
     ]
+
+    static var smokeTestCandidates: [MLXModelInfo] {
+        models + experimentalCandidates
+    }
 
     static var recommendedModelID: String { DeviceCapability.recommendedMLXModel }
 
@@ -108,6 +115,6 @@ enum MLXModelCatalog {
     }
 
     static func supportsNoThink(_ modelID: String) -> Bool {
-        model(id: modelID)?.supportsNoThink ?? false
+        smokeTestCandidates.first { $0.id == modelID }?.supportsNoThink ?? false
     }
 }

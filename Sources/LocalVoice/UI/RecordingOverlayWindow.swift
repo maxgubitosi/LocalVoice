@@ -4,8 +4,23 @@ import SwiftUI
 enum OverlayState {
     case recording
     case transcribing
-    case refining(transcript: String)
+    case refining(promptName: String, transcript: String)
     case error(String)
+}
+
+extension OverlayState {
+    var displayTitle: String {
+        switch self {
+        case .recording:
+            return "Recording"
+        case .transcribing:
+            return "Transcribing..."
+        case .refining(let promptName, _):
+            return "\(promptName)..."
+        case .error(let message):
+            return message
+        }
+    }
 }
 
 final class OverlayViewModel: ObservableObject {
@@ -58,7 +73,9 @@ final class RecordingOverlayWindow: NSWindow {
 
     func showTranscribing() { show(state: .transcribing) }
 
-    func showRefining(transcript: String) { show(state: .refining(transcript: transcript)) }
+    func showRefining(promptName: String, transcript: String) {
+        show(state: .refining(promptName: promptName, transcript: transcript))
+    }
 
     func showError(_ message: String) {
         show(state: .error(message))
@@ -105,8 +122,8 @@ struct RecordingOverlayView: View {
             RecordingContent()
         case .transcribing:
             ProcessingContent(title: "Transcribing...", subtitle: nil, tint: .white)
-        case .refining(let transcript):
-            ProcessingContent(title: "Refining...", subtitle: transcript, tint: Color(red: 0.48, green: 0.74, blue: 1.0))
+        case .refining(_, let transcript):
+            ProcessingContent(title: viewModel.state.displayTitle, subtitle: transcript, tint: Color(red: 0.48, green: 0.74, blue: 1.0))
         case .error(let message):
             ErrorContent(message: message)
         }

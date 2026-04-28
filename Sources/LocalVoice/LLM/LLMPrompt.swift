@@ -12,7 +12,7 @@ extension LLMPrompt {
     static let presetImprove = LLMPrompt(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
         name: "Clean",
-        instruction: "Clean up dictated text for immediate insertion. Fix punctuation, casing, obvious grammar issues, repeated words, and filler words. Keep the speaker's intent, voice, vocabulary, facts, names, numbers, URLs, code, and commands intact. Return only the final text, with no explanations or quotation marks.",
+        instruction: "Clean up dictated text for immediate insertion. Fix punctuation, casing, obvious grammar issues, repeated words, filler words, and likely ASR mistakes when a near-sounding correction is clearly more plausible. Restore opening question/exclamation marks in Spanish when needed. Preserve intent, voice, facts, names, numbers, URLs, code, and commands. Return only the final text, with no explanations or quotation marks.",
         isPreset: true,
         keyNumber: 1
     )
@@ -20,7 +20,7 @@ extension LLMPrompt {
     static let presetCorrect = LLMPrompt(
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
         name: "Correct ASR",
-        instruction: "Correct only clear speech recognition mistakes such as wrong homophones, garbled words, missing punctuation, or obvious substitutions. Do not rewrite, summarize, embellish, or improve style. Preserve every word that could plausibly be what the speaker said. Return only the corrected text, with no explanations or quotation marks.",
+        instruction: "Recover what the speaker most likely said by correcting clear speech-recognition mistakes: wrong homophones, near-homophones, garbled words, wrong word boundaries, missing punctuation, accents, and obvious substitutions. Use surrounding context and app context to choose the semantically plausible phrase. Do not summarize, embellish, or improve style beyond ASR correction. Preserve every word that could plausibly be what the speaker said. Return only the corrected text, with no explanations or quotation marks.",
         isPreset: true,
         keyNumber: 2
     )

@@ -1,6 +1,18 @@
 import AppKit
 import Sparkle
 
+enum MenuBarCopy {
+    static let modeTitle = "Mode"
+    static let languageTitle = "Language"
+    static let whisperTitle = "Whisper"
+    static let refineModelTitle = "Refine Model"
+    static let promptTitle = "Prompt"
+
+    static func promptShortcutHint() -> String {
+        "Press 1-9 during recording"
+    }
+}
+
 protocol MenuBarDelegate: AnyObject {
     func modeChanged(to mode: AppMode)
     func llmModelChanged(to model: String)
@@ -90,7 +102,7 @@ final class MenuBarManager: NSObject {
         }
 
         // Mode
-        let modeItem = NSMenuItem(title: "Mode: \(settings.mode.rawValue)", action: nil, keyEquivalent: "")
+        let modeItem = NSMenuItem(title: MenuBarCopy.modeTitle, action: nil, keyEquivalent: "")
         let modeSubmenu = NSMenu()
 
         for mode in AppMode.allCases {
@@ -108,7 +120,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(modeItem)
 
         // Language
-        let langItem = NSMenuItem(title: "Language: \(settings.transcriptionLanguage.displayName)", action: nil, keyEquivalent: "")
+        let langItem = NSMenuItem(title: MenuBarCopy.languageTitle, action: nil, keyEquivalent: "")
         let langSubmenu = NSMenu()
         for language in TranscriptionLanguage.allCases {
             let item = NSMenuItem(
@@ -125,7 +137,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(langItem)
 
         // Whisper model
-        let whisperItem = NSMenuItem(title: "Whisper: \(TranscriptionEngine.displayName(for: settings.whisperModel))", action: nil, keyEquivalent: "")
+        let whisperItem = NSMenuItem(title: MenuBarCopy.whisperTitle, action: nil, keyEquivalent: "")
         let whisperSubmenu = NSMenu()
         for model in TranscriptionEngine.availableModels {
             let item = NSMenuItem(
@@ -142,8 +154,7 @@ final class MenuBarManager: NSObject {
         menu.addItem(whisperItem)
 
         // Refine model
-        let selectedRefineLabel = MLXModelCatalog.models.first { $0.id == settings.llmModel }?.displayName ?? settings.llmModel
-        let refineModelItem = NSMenuItem(title: "Refine Model: \(selectedRefineLabel)", action: nil, keyEquivalent: "")
+        let refineModelItem = NSMenuItem(title: MenuBarCopy.refineModelTitle, action: nil, keyEquivalent: "")
         let refineModelSubmenu = NSMenu()
         for model in MLXModelCatalog.models {
             let item = NSMenuItem(
@@ -161,11 +172,10 @@ final class MenuBarManager: NSObject {
 
         // Prompt
         let activePrompt = promptStore.activePrompt(id: settings.activePromptID)
-        let promptItem = NSMenuItem(title: "Prompt: \(activePrompt.name)", action: nil, keyEquivalent: "")
+        let promptItem = NSMenuItem(title: MenuBarCopy.promptTitle, action: nil, keyEquivalent: "")
         let promptSubmenu = NSMenu()
         for p in promptStore.prompts {
-            let label = p.keyNumber.map { "\(p.name)  press \($0) while recording" } ?? p.name
-            let item = NSMenuItem(title: label, action: #selector(promptSelected(_:)), keyEquivalent: "")
+            let item = NSMenuItem(title: p.name, action: #selector(promptSelected(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = p.id
             item.state = (p.id == activePrompt.id) ? .on : .off
@@ -201,13 +211,9 @@ final class MenuBarManager: NSObject {
         hotkeyHint.isEnabled = false
         menu.addItem(hotkeyHint)
 
-        let promptHint = NSMenuItem(title: "While recording: press 1-9 to switch prompts", action: nil, keyEquivalent: "")
+        let promptHint = NSMenuItem(title: MenuBarCopy.promptShortcutHint(), action: nil, keyEquivalent: "")
         promptHint.isEnabled = false
         menu.addItem(promptHint)
-
-        let localHint = NSMenuItem(title: "Speech and refinement stay on this Mac", action: nil, keyEquivalent: "")
-        localHint.isEnabled = false
-        menu.addItem(localHint)
 
         menu.addItem(.separator())
 
