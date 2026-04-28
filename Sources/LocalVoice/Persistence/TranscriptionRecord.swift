@@ -9,6 +9,8 @@ final class TranscriptionRecord {
     var detectedLanguage: String?
     var frontmostAppBundleID: String?
     var frontmostAppName: String?
+    var frontmostPageTitle: String?
+    var frontmostPageURL: String?
     var mode: String
     var whisperModel: String
     @Attribute(originalName: "ollamaModel") var llmModel: String?
@@ -31,6 +33,8 @@ final class TranscriptionRecord {
         detectedLanguage: String?,
         frontmostAppBundleID: String?,
         frontmostAppName: String?,
+        frontmostPageTitle: String? = nil,
+        frontmostPageURL: String? = nil,
         mode: String,
         whisperModel: String,
         llmModel: String?,
@@ -48,6 +52,8 @@ final class TranscriptionRecord {
         self.detectedLanguage = detectedLanguage
         self.frontmostAppBundleID = frontmostAppBundleID
         self.frontmostAppName = frontmostAppName
+        self.frontmostPageTitle = frontmostPageTitle
+        self.frontmostPageURL = frontmostPageURL
         self.mode = mode
         self.whisperModel = whisperModel
         self.llmModel = llmModel

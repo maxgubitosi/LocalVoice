@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var modelContainer: ModelContainer?
     private var recordingStartTime: Date = Date()
-    private var recordingTargetApp: (bundleID: String, name: String)? = nil
+    private var recordingTargetApp: ActiveAppContext? = nil
     private var promptStore: PromptStore!
     private var sessionPromptKeyNumber: Int? = nil
     private var currentPipelineTask: Task<Void, Never>?
@@ -148,9 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         currentPipelineTask?.cancel()
         currentPipelineTask = nil
         recordingStartTime = Date()
-        let ws = NSWorkspace.shared
-        recordingTargetApp = ws.frontmostApplication.map {
-            (bundleID: $0.bundleIdentifier ?? "unknown", name: $0.localizedName ?? "Unknown")
+        recordingTargetApp = ActiveAppContext.captureFrontmost()
+        if let target = recordingTargetApp {
+            Logger.pipeline.debug("Recording target: \(target.promptDescription, privacy: .private)")
         }
         DispatchQueue.main.async { self.recordingOverlay.show(state: .recording) }
         audioCapture.startRecording()
@@ -216,7 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         let refinedText = try await self.mlxClient.rewrite(
                             transcript: output.text,
                             prompt: activePrompt,
-                            appContext: self.recordingTargetApp?.name,
+                            appContext: self.recordingTargetApp?.promptDescription,
                             detectedLanguage: languageForLLM
                         )
                         finalText = RefineOutputSanitizer.clean(refinedText)
@@ -256,6 +256,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 detectedLanguage: detectedLanguage,
                                 frontmostAppBundleID: targetApp?.bundleID,
                                 frontmostAppName: targetApp?.name,
+                                frontmostPageTitle: targetApp?.browserPage?.title,
+                                frontmostPageURL: targetApp?.browserPage?.url,
                                 mode: mode.rawValue,
                                 whisperModel: whisperModel,
                                 llmModel: mode == .llmRewrite ? llmModel : nil,

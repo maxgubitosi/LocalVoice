@@ -26,6 +26,6 @@
     <key>NSAccessibilityUsageDescription</key>
     <string>LocalVoice needs Accessibility access to insert transcribed text into the active app.</string>
     <key>NSInputMonitoringUsageDescription</key>
-    <string>LocalVoice needs Input Monitoring to detect the Right Command hotkey for recording.</string>
+    <string>LocalVoice needs Input Monitoring to detect the selected recording hotkey globally.</string>
 </dict>
 </plist>

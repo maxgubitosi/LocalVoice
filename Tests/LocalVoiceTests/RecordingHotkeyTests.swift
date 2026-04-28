@@ -17,3 +17,40 @@ final class RecordingHotkeyTests: XCTestCase {
         XCTAssertEqual(RecordingHotkey.rightControl.keyCode, 0x3E)
     }
 }
+
+final class ActiveAppContextTests: XCTestCase {
+    func testPromptDescriptionIncludesBrowserPage() {
+        let context = ActiveAppContext(
+            bundleID: "com.google.Chrome",
+            name: "Google Chrome",
+            browserPage: BrowserPageContext(
+                title: "LocalVoice Pull Request",
+                url: "https://github.com/example/localvoice/pull/12?token=secret#discussion"
+            )
+        )
+
+        XCTAssertEqual(
+            context.promptDescription,
+            "Google Chrome - active page: LocalVoice Pull Request (https://github.com/example/localvoice/pull/12)"
+        )
+    }
+
+    func testPromptDescriptionFallsBackToAppName() {
+        let context = ActiveAppContext(
+            bundleID: "com.apple.Notes",
+            name: "Notes",
+            browserPage: nil
+        )
+
+        XCTAssertEqual(context.promptDescription, "Notes")
+    }
+
+    func testBrowserPageContextCleansTitleAndURL() {
+        let page = BrowserPageContext(
+            title: "  Project\nNotes  ",
+            url: "https://example.com/docs?id=123#top"
+        )
+
+        XCTAssertEqual(page.promptDescription, "Project Notes (https://example.com/docs)")
+    }
+}

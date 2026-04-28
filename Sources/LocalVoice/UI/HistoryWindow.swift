@@ -41,6 +41,8 @@ struct HistoryView: View {
             } else {
                 let haystack = [
                     record.frontmostAppName ?? "",
+                    record.frontmostPageTitle ?? "",
+                    record.frontmostPageURL ?? "",
                     record.mode,
                     record.promptName ?? "",
                     record.detectedLanguage ?? "",
@@ -116,7 +118,7 @@ struct HistoryView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search app, prompt, language, or transcript", text: $searchText)
+                TextField("Search app, page, prompt, language, or transcript", text: $searchText)
                     .textFieldStyle(.plain)
             }
             .padding(.horizontal, 10)
@@ -307,6 +309,9 @@ private struct RecordRow: View {
                         Text(record.frontmostAppName ?? "Unknown app")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        if let pageContext = BrowserPageHistoryContext(record: record) {
+                            BrowserPageHistoryView(context: pageContext)
+                        }
                     }
 
                     Spacer()
@@ -401,6 +406,47 @@ private struct RecordRow: View {
     }
 }
 
+private struct BrowserPageHistoryContext {
+    let title: String?
+    let url: String?
+
+    init?(record: TranscriptionRecord) {
+        let title = Self.nonEmpty(record.frontmostPageTitle)
+        let url = Self.nonEmpty(record.frontmostPageURL)
+        guard title != nil || url != nil else { return nil }
+        self.title = title
+        self.url = url
+    }
+
+    private static func nonEmpty(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct BrowserPageHistoryView: View {
+    let context: BrowserPageHistoryContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let title = context.title {
+                Label(title, systemImage: "doc.text.magnifyingglass")
+                    .lineLimit(1)
+            }
+            if let url = context.url {
+                Label(url, systemImage: "link")
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .padding(.top, 1)
+    }
+}
+
 private struct HistoryTextBlock: View {
     let title: String
     let text: String
@@ -461,7 +507,7 @@ private struct ExportButton: View {
     }
 
     private func buildCSV() -> String {
-        let header = "timestamp,app,mode,whisperModel,llmModel,wordCount,durationSeconds,wpm,language,promptName,transcriptionSeconds,refineSeconds,processingSeconds,originalText,refinedText,finalText"
+        let header = "timestamp,app,pageTitle,pageURL,mode,whisperModel,llmModel,wordCount,durationSeconds,wpm,language,promptName,transcriptionSeconds,refineSeconds,processingSeconds,originalText,refinedText,finalText"
         let rows = records.map { record -> String in
             let wpm: String = record.audioDurationSeconds > 0
                 ? String(format: "%.1f", Double(record.wordCount) / record.audioDurationSeconds * 60)
@@ -469,6 +515,8 @@ private struct ExportButton: View {
             let fields: [String] = [
                 iso(record.timestamp),
                 escape(record.frontmostAppName ?? ""),
+                escape(record.frontmostPageTitle ?? ""),
+                escape(record.frontmostPageURL ?? ""),
                 escape(record.mode),
                 escape(record.whisperModel),
                 escape(record.llmModel ?? ""),
