@@ -148,7 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         currentPipelineTask?.cancel()
         currentPipelineTask = nil
         recordingStartTime = Date()
-        recordingTargetApp = ActiveAppContext.captureFrontmost()
+        recordingTargetApp = ActiveAppContext.captureFrontmost(
+            includeBrowserPage: appSettings.includeBrowserPageContext
+        )
         if let target = recordingTargetApp {
             Logger.pipeline.debug("Recording target: \(target.promptDescription, privacy: .private)")
         }

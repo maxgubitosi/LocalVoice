@@ -12,14 +12,14 @@ struct ActiveAppContext {
         return "\(name) - active page: \(pageDescription)"
     }
 
-    static func captureFrontmost() -> ActiveAppContext? {
+    static func captureFrontmost(includeBrowserPage: Bool = true) -> ActiveAppContext? {
         guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
         let bundleID = app.bundleIdentifier
         let name = app.localizedName ?? "Unknown"
         return ActiveAppContext(
             bundleID: bundleID,
             name: name,
-            browserPage: BrowserPageContext.capture(for: app)
+            browserPage: includeBrowserPage ? BrowserPageContext.capture(for: app) : nil
         )
     }
 }

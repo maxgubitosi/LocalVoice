@@ -12,18 +12,19 @@ A free macOS app for local, private voice-to-text. 100% local, no cloud, no APIs
 - **Mode 2 — Refine**: speech → Whisper → local MLX text model → polished text inserted
 - Powered by [WhisperKit](https://github.com/argmaxinc/WhisperKit) (Apple Neural Engine optimized)
 - Local LLM via [mlx-swift](https://github.com/ml-explore/mlx-swift) — runs entirely on your Mac, no external server
-- Smart text insertion: AXUIElement API (no clipboard pollution) with pasteboard fallback
+- Smart text insertion: AXUIElement API first, Unicode keyboard events fallback, no clipboard pollution
 - Skips password fields automatically (`AXSecureTextField`)
 - Transcription history with stats and CSV export (⌘H)
+- Optional active browser page context for Refine and local history, with sanitized URLs
 - Animated floating overlay while recording
 
 ## Download
 
-**[Download `LocalVoice.zip` →](https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip)** (or browse all [releases](https://github.com/maxgubitosi/LocalVoice/releases))
+**[Download the public beta ZIP (`LocalVoice.zip`) →](https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip)** (or browse all [releases](https://github.com/maxgubitosi/LocalVoice/releases))
 
 ### First launch (one-time setup)
 
-LocalVoice is signed ad-hoc (no paid Apple Developer ID), so macOS quarantines the bundle on download. You need to clear that flag **before** opening the app — otherwise macOS runs it from a randomized translocated path and your Input Monitoring / Accessibility grants don't stick, so the recording hotkey will silently do nothing.
+The current public beta is signed ad-hoc, not with a paid Apple Developer ID. macOS quarantines downloaded ad-hoc apps, so clear that flag **before** opening LocalVoice. Otherwise macOS may run it from a randomized translocated path and your Input Monitoring / Accessibility grants may not stick.
 
 1. Unzip `LocalVoice.zip`.
 2. Drag `LocalVoice.app` into `/Applications`.
@@ -59,6 +60,8 @@ To build a distributable zip:
 make release-zip   # produces LocalVoice.zip, ready to upload to GitHub Releases
 ```
 
+Beta ZIP builds are ad-hoc signed, so they still require the quarantine step above. Developer ID notarized DMG distribution is planned but not active yet.
+
 Mode 1 (Direct Transcription) works immediately. Mode 2 (Refine) will prompt you to download a local text model on first use — this happens inside the app, no manual steps needed.
 
 ## Permissions
@@ -74,6 +77,16 @@ On first launch, LocalVoice will request:
 
 
 Go to **System Settings → Privacy & Security** to grant these. The app won't work without Accessibility and Input Monitoring.
+
+## Language tip
+
+If you dictate in Spanish, set **Language → Spanish** instead of Auto. Auto can misdetect short Spanish clips, and Refine may then respond in English.
+
+## Privacy
+
+LocalVoice does not use cloud transcription, API keys, or a remote LLM. Audio, transcripts, prompts, model inference, and history stay on your Mac.
+
+When **Include active browser page context** is enabled in Settings, LocalVoice may read the active browser page title and URL to improve Refine mode and include that metadata in local history/CSV export. URLs are stored without query strings or fragments, and you can turn this off at any time.
 
 ## Hotkey
 

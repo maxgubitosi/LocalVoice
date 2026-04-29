@@ -44,7 +44,7 @@
           <a class="button primary" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>↓ Download for macOS</a>
           <a class="button secondary" href="https://github.com/maxgubitosi/LocalVoice">View source</a>
         </div>
-        <p class="hero-note">Current release is ad-hoc signed. First launch requires a one-time quarantine command.</p>
+        <p class="hero-note">Public beta ZIP. Ad-hoc signed builds require a one-time quarantine command before first launch.</p>
       </div>
     </section>
 
@@ -67,7 +67,7 @@
         <article class="panel step">
           <span class="step-index">03</span>
           <h3>Release to insert</h3>
-          <p>LocalVoice inserts text into the focused field using Accessibility first, with pasteboard fallback when needed.</p>
+          <p>LocalVoice inserts text into the focused field using Accessibility first, with Unicode keyboard events fallback when needed.</p>
         </article>
       </div>
     </section>
@@ -93,7 +93,7 @@
       <div class="section-heading">
         <p class="label">Privacy model</p>
         <h2>Your voice never leaves your Mac.</h2>
-        <p class="section-copy">LocalVoice has no cloud transcription service, no API keys, and no subscription. The app is MIT licensed, so the audio path is auditable.</p>
+        <p class="section-copy">LocalVoice has no cloud transcription service, no API keys, and no subscription. Audio, prompts, model inference, history, and optional browser page context stay on your Mac.</p>
       </div>
       <div class="proof-grid">
         <article class="panel proof">
@@ -102,11 +102,15 @@
         </article>
         <article class="panel proof">
           <strong>Text refinement</strong>
-          <span>MLX · Qwen models downloaded locally</span>
+          <span>MLX · local text models downloaded on-device</span>
         </article>
         <article class="panel proof">
           <strong>Text insertion</strong>
-          <span>AXUIElement first · clipboard fallback restored</span>
+          <span>AXUIElement first · no clipboard pollution</span>
+        </article>
+        <article class="panel proof">
+          <strong>Browser context</strong>
+          <span>Optional title and sanitized URL for Refine and local history</span>
         </article>
         <article class="panel proof">
           <strong>Secure fields</strong>
@@ -136,8 +140,16 @@
           <p>Press 1-9 while recording to temporarily select a rewrite prompt for that dictation.</p>
         </div>
         <div class="feature-row">
+          <h3>Language control</h3>
+          <p>For Spanish dictation, choose Spanish directly. Auto can misdetect short clips and make Refine answer in English.</p>
+        </div>
+        <div class="feature-row">
           <h3>Local history</h3>
-          <p>Review recordings, search transcripts when saving is enabled, and export CSV for analysis.</p>
+          <p>Review recordings, search transcripts when saving is enabled, and export CSV with local metadata.</p>
+        </div>
+        <div class="feature-row">
+          <h3>Configurable browser context</h3>
+          <p>Use active browser title and sanitized URL to improve Refine, or turn it off in Settings.</p>
         </div>
         <div class="feature-row">
           <h3>Hardware-aware defaults</h3>
@@ -150,7 +162,7 @@
       <div class="section-heading">
         <p class="label">Install today</p>
         <h2>Transparent about the current distribution state.</h2>
-        <p class="section-copy">LocalVoice is currently distributed through GitHub Releases as an ad-hoc signed app. A Developer ID notarized DMG is planned, but not available yet.</p>
+        <p class="section-copy">LocalVoice is currently distributed through GitHub Releases as a public beta ZIP with an ad-hoc signed app. A Developer ID notarized DMG is planned, but not available yet.</p>
       </div>
       <div class="install-grid">
         <article class="panel install-card">

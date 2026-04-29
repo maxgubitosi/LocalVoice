@@ -58,6 +58,9 @@ final class AppSettings: ObservableObject {
     @Published var saveTranscribedText: Bool {
         didSet { UserDefaults.standard.set(saveTranscribedText, forKey: "saveTranscribedText") }
     }
+    @Published var includeBrowserPageContext: Bool {
+        didSet { UserDefaults.standard.set(includeBrowserPageContext, forKey: "includeBrowserPageContext") }
+    }
     @Published var activePromptID: UUID? {
         didSet { UserDefaults.standard.set(activePromptID?.uuidString, forKey: "activePromptID") }
     }
@@ -106,6 +109,9 @@ final class AppSettings: ObservableObject {
         let rawLang = UserDefaults.standard.string(forKey: "transcriptionLanguage") ?? ""
         self.transcriptionLanguage = TranscriptionLanguage(rawValue: rawLang) ?? .system
         self.saveTranscribedText = UserDefaults.standard.bool(forKey: "saveTranscribedText")
+        self.includeBrowserPageContext = UserDefaults.standard.object(forKey: "includeBrowserPageContext") == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: "includeBrowserPageContext")
         let savedPromptID = UserDefaults.standard.string(forKey: "activePromptID")
         self.activePromptID = savedPromptID.flatMap { UUID(uuidString: $0) }
     }

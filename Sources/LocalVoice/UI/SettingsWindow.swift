@@ -245,7 +245,7 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    Text("System follows your macOS language. Auto can be less reliable for very short clips.")
+                    Text("For Spanish dictation, choose Spanish directly. Auto may misdetect short Spanish clips and Refine can then answer in English.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -398,6 +398,11 @@ struct SettingsView: View {
                     Text("When disabled, history keeps metadata and statistics, but not the transcript content.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    Toggle("Include active browser page context", isOn: $settings.includeBrowserPageContext)
+                    Text("When enabled, LocalVoice may use the active browser page title and sanitized URL for Refine and local history. Query strings and fragments are removed.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -413,7 +418,7 @@ struct SettingsView: View {
                         Text("Privacy model")
                             .font(.headline)
                     }
-                    Text("Audio, transcripts, prompts, and model inference stay on this Mac. LocalVoice uses direct text insertion first and refuses secure password fields.")
+                    Text("Audio, transcripts, prompts, model inference, and optional browser page context stay on this Mac. LocalVoice uses direct text insertion first and refuses secure password fields.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

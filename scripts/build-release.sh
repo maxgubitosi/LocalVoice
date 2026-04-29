@@ -15,10 +15,7 @@ APP="LocalVoice.app"
 DMG="LocalVoice-${VERSION}.dmg"
 ENTITLEMENTS="Sources/LocalVoice/LocalVoice.entitlements"
 
-echo "==> Building release binary…"
-swift build -c release
-
-echo "==> Creating app bundle…"
+echo "==> Building app bundle…"
 make bundle
 
 echo "==> Re-signing with Developer ID + hardened runtime…"

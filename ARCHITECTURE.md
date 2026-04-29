@@ -66,17 +66,17 @@
 - **`PromptComposer.swift`** — builds the final structured prompt with task, language, app context, and literal dictation block.
 
 ### `Persistence/`
-- **`TranscriptionRecord.swift`** — `@Model` (SwiftData). Stores per-transcription metadata: timestamp, audio duration, word count, detected language, destination app, mode, Whisper model, LLM model, LLM latency, and optionally the transcribed text (opt-in, default off).
+- **`TranscriptionRecord.swift`** — `@Model` (SwiftData). Stores per-transcription metadata: timestamp, audio duration, word count, detected language, destination app, optional browser page context, mode, Whisper model, LLM model, LLM latency, and optionally the transcribed text (opt-in, default off).
 
 ### `TextInsertion/`
 - **`TextInserter.swift`** — Two-tier insertion strategy:
   1. **AXUIElement** (`kAXSelectedTextAttribute` or `kAXValueAttribute + kAXSelectedTextRangeAttribute`): Direct, precise, no clipboard side-effects. Checks `kAXSecureTextFieldRole` and skips password fields.
-  2. **NSPasteboard + CGEventPost** (Cmd+V): Universal fallback. Saves and restores clipboard contents after 500ms.
+  2. **Unicode keyboard events** (`CGEvent.keyboardSetUnicodeString`): fallback path with no clipboard access.
 
 ### `UI/`
 - **`MenuBarManager.swift`** — `NSStatusItem` with `waveform.circle` SF Symbol. Builds `NSMenu` with mode picker, hotkey mode picker, and Whisper model submenu. Animates icon while recording.
 - **`RecordingOverlayWindow.swift`** — Borderless `NSWindow` at `.floating` level, bottom-right corner. SwiftUI content with pulsing red dot + animated bar chart. Shows distinct states: recording → transcribing → improving (Mode 2).
-- **`SettingsWindow.swift`** — Standard `NSWindow` + SwiftUI `Form` for persistent settings, including privacy opt-in for storing transcribed text.
+- **`SettingsWindow.swift`** — Standard `NSWindow` + SwiftUI `Form` for persistent settings, including privacy controls for saving transcribed text and browser page context.
 - **`HistoryWindow.swift`** — Transcription history browser (⌘H). Displays aggregate stats (total recordings, total words, avg WPM), a list of past records, and CSV export.
 
 ## Data Flow

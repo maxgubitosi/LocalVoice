@@ -8,7 +8,6 @@ DerivedData/
 # Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
 
 # macOS
 .DS_Store
@@ -35,17 +34,20 @@ Package.resolved
 # Environment
 .env
 
-# Claude AI memory (local only)
+# Local notes and AI memory
 memory/
-
 docs/
 
-# Benchmark and Tests
+# Local benchmark artifacts
 Benchmark/
-Tests/
-Tools/
-!Tests/LocalVoiceTests/
-!Tests/LocalVoiceTests/**
+Tests/MLXLatency/
+Tests/results/
+Tests/*.csv
+Tests/*.py
+Tests/README.md
+Tests/.gitignore
+**/__pycache__/
+*.pyc
 
 # Ignore all .m4a files
 *.m4a
@@ -53,6 +55,7 @@ Tools/
 # Build artifacts
 LocalVoice.app/
 LocalVoice.zip
+*.dmg
 
 # Git worktrees
 .worktrees/.superpowers/

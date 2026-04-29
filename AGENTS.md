@@ -9,7 +9,7 @@ macOS menu bar app for local, private voice-to-text. No cloud, no subscription. 
 - **Hold mode:** hold Right Command → record, release → transcribe
 - **Latch mode:** double-tap Right Command → start recording, tap → stop and transcribe
 - **Mode 1 (Direct):** audio → Whisper → text inserted into the active app
-- **Mode 2 (Refine):** audio → Whisper → MLX in-process (Qwen3.5) → rewritten text → inserted
+- **Mode 2 (Refine):** audio → Whisper → MLX in-process → rewritten text → inserted
 
 ## Build & Run
 
@@ -52,14 +52,14 @@ Sources/LocalVoice/
 │   └── TranscriptionEngine.swift  # WhisperKit wrapper, returns TranscriptionOutput {text, language}
 ├── LLM/
 │   ├── MLXClient.swift            # in-process inference via MLXLLM + ChatSession
-│   ├── MLXModelCatalog.swift      # curated Qwen3.5 model list with RAM/size metadata
+│   ├── MLXModelCatalog.swift      # curated local text model list with RAM/size metadata
 │   ├── MLXModelManager.swift      # download, progress, deletion of MLX models
 │   ├── LLMPrompt.swift            # prompt model: name, text, optional shortcut
 │   └── PromptStore.swift          # persists and manages user-defined prompts
 ├── Persistence/
 │   └── TranscriptionRecord.swift  # @Model SwiftData — local transcription history
 ├── TextInsertion/
-│   └── TextInserter.swift         # AXUIElement (tier 1) + pasteboard (tier 2)
+│   └── TextInserter.swift         # AXUIElement (tier 1) + Unicode keyboard events (tier 2)
 └── UI/
     ├── MenuBarManager.swift        # NSStatusItem + NSMenu + "Check for Updates…"
     ├── RecordingOverlayWindow.swift # animated floating SwiftUI overlay
@@ -90,15 +90,14 @@ HotkeyManager.onHotkeyUp
 
 | Device | Model | ~RAM required |
 |---|---|---|
-| M4, 32 GB+ | `mlx-community/Qwen3.5-27B-4bit` | ~16 GB |
-| M3/M4, 16 GB+ | `mlx-community/Qwen3.5-9B-MLX-4bit` | ~5.5 GB |
-| Any, 16 GB+ | `mlx-community/Qwen3.5-4B-MLX-4bit` | ~3 GB |
-| Default (M1/M2 8 GB) | `mlx-community/Qwen3.5-2B-MLX-4bit` | ~1.5 GB |
+| 24 GB+ | `mlx-community/gemma-4-e4b-it-4bit` | ~6.5 GB |
+| 16 GB+ | `mlx-community/gemma-4-e2b-it-4bit` | ~4.5 GB |
+| Default (8 GB) | `mlx-community/Qwen3.5-2B-OptiQ-4bit` | ~2 GB |
 
 Models download on first use of Refine mode. Stored at:
 `~/Library/Application Support/LocalVoice/MLXModels/models/<org>/<model>/`
 
-**Qwen3 no-think mode:** `/no_think` is appended to the prompt to disable chain-of-thought, significantly reducing latency for short rewrite tasks.
+`/no_think` is only appended for catalog models marked as supporting it; current visible defaults do not require it.
 
 ## MLXClient — Implementation Details
 
@@ -116,7 +115,7 @@ A new chat session is created per request (or `session.clear()` is called) to pr
 `TextInserter` has two tiers:
 
 1. **AXUIElement** — direct, no clipboard. Checks `kAXSecureTextFieldRole` and **never inserts into password fields**.
-2. **NSPasteboard + Cmd+V** — universal fallback. Saves and restores clipboard after 500 ms.
+2. **Unicode keyboard events** — fallback path with no clipboard access.
 
 **Never skip the secure text field check.** This is a hard security invariant.
 
@@ -184,7 +183,7 @@ To sign with a real Developer ID:
 
 ### Done
 - Direct transcription (Whisper / WhisperKit, Apple Neural Engine)
-- LLM rewrite mode (MLX in-process, Qwen3.5, auto-download)
+- LLM rewrite mode (MLX in-process, auto-download)
 - In-app model management (download, progress, deletion) for both Whisper and MLX
 - Transcription history with stats and CSV export (SwiftData)
 - Hold and latch hotkey modes
@@ -194,7 +193,7 @@ To sign with a real Developer ID:
 
 ### Done (continued)
 - User-defined prompts with per-prompt number shortcuts (`PromptStore`, `PromptsManagementView`)
-- Active app detection — app name captured at recording start, passed as context to MLXClient
+- Active app detection — app name and optional browser page context captured at recording start, passed as context to MLXClient
 - Number shortcuts during recording: hold Right Command, press 1–9 to select a prompt by `keyNumber`
 
 ### Blocked — Phase 6: Public Distribution
@@ -202,7 +201,7 @@ Blocked on Apple Developer ID ($99/year).
 - [ ] Enroll in Apple Developer Program
 - [ ] Publish first signed DMG to GitHub Releases
 - [ ] Create `appcast.xml` and update `SUFeedURL` in `Info.plist`
-- [ ] Landing page
+- [x] Landing page
 
 ## Additional Docs
 
