@@ -60,7 +60,7 @@ To build a distributable zip:
 make release-zip   # produces LocalVoice.zip, ready to upload to GitHub Releases
 ```
 
-Beta ZIP builds are ad-hoc signed, so they still require the quarantine step above. Developer ID notarized DMG distribution is planned but not active yet.
+Beta ZIP builds are ad-hoc signed, so they still require the quarantine step above. A Developer ID notarized DMG is coming soon; until then, use the ZIP flow.
 
 Mode 1 (Direct Transcription) works immediately. Mode 2 (Refine) will prompt you to download a local text model on first use — this happens inside the app, no manual steps needed.
 

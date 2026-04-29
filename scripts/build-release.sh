@@ -10,10 +10,33 @@
 set -euo pipefail
 
 VERSION=${1:?"Usage: $0 <version>  (e.g. 1.0.0)"}
-IDENTITY=${DEVELOPER_ID_IDENTITY:-"Developer ID Application: YOUR_NAME (TEAM_ID)"}
+IDENTITY=${DEVELOPER_ID_IDENTITY:-}
 APP="LocalVoice.app"
 DMG="LocalVoice-${VERSION}.dmg"
 ENTITLEMENTS="Sources/LocalVoice/LocalVoice.entitlements"
+INFO_PLIST="Sources/LocalVoice/Info.plist"
+
+if [[ -z "$IDENTITY" ]]; then
+    echo "error: DEVELOPER_ID_IDENTITY must be set to your Developer ID Application certificate name."
+    exit 1
+fi
+
+if ! command -v create-dmg >/dev/null 2>&1; then
+    echo "error: create-dmg is required. Install it with: brew install create-dmg"
+    exit 1
+fi
+
+if ! security find-identity -v -p codesigning | grep -Fq "$IDENTITY"; then
+    echo "error: signing identity not found in keychain: $IDENTITY"
+    exit 1
+fi
+
+PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST")
+if [[ "$PLIST_VERSION" != "$VERSION" ]]; then
+    echo "error: $INFO_PLIST has CFBundleShortVersionString=$PLIST_VERSION, expected $VERSION."
+    echo "Update the plist version before building this release."
+    exit 1
+fi
 
 echo "==> Building app bundle…"
 make bundle
@@ -29,6 +52,7 @@ codesign --verify --deep --strict "$APP"
 spctl --assess --type exec "$APP" 2>&1 || true
 
 echo "==> Creating DMG…"
+rm -f "$DMG"
 create-dmg \
     --volname "LocalVoice $VERSION" \
     --window-size 540 380 \

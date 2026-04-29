@@ -58,7 +58,7 @@ LocalVoice.zip
 *.dmg
 
 # Git worktrees
-.worktrees/.superpowers/
+.worktrees/
 
 # AI tooling (local only)
 .superpowers/
