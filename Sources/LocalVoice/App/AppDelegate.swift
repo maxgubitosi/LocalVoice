@@ -137,7 +137,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func cancelRecording() {
         audioCapture.stopRecording { _ in }
-        DispatchQueue.main.async { self.recordingOverlay.hide() }
+        DispatchQueue.main.async {
+            self.menuBarManager.setRecording(false)
+            self.recordingOverlay.hide()
+        }
     }
 
     private func startRecording() {
@@ -154,7 +157,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let target = recordingTargetApp {
             Logger.pipeline.debug("Recording target: \(target.promptDescription, privacy: .private)")
         }
-        DispatchQueue.main.async { self.recordingOverlay.show(state: .recording) }
+        DispatchQueue.main.async {
+            self.menuBarManager.setRecording(true)
+            self.recordingOverlay.show(state: .recording)
+        }
         audioCapture.startRecording()
     }
 
@@ -163,7 +169,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sessionPromptKeyNumber = nil
         audioCapture.stopRecording { [weak self] audioBuffer in
             guard let self else { return }
-            DispatchQueue.main.async { self.recordingOverlay.showTranscribing() }
+            DispatchQueue.main.async {
+                self.menuBarManager.setRecording(false)
+                self.recordingOverlay.showTranscribing()
+            }
 
             guard let buffer = audioBuffer else {
                 DispatchQueue.main.async { self.recordingOverlay.hide() }

@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 
 enum OverlayState {
@@ -27,47 +28,65 @@ final class OverlayViewModel: ObservableObject {
     @Published var state: OverlayState = .recording
 }
 
-private let overlayWindowSize = CGSize(width: 220, height: 76)
+private let overlayWindowSize = CGSize(width: 184, height: 54)
+private let overlayWindowPadding: CGFloat = 10
 
-final class RecordingOverlayWindow: NSWindow {
+final class RecordingOverlayWindow: NSPanel {
     private let viewModel = OverlayViewModel()
+    private var presentationGeneration = 0
 
     init() {
-        let screen = NSScreen.main ?? NSScreen.screens[0]
-        let origin = CGPoint(
-            x: screen.visibleFrame.maxX - overlayWindowSize.width - 18,
-            y: screen.visibleFrame.minY + 18
-        )
-
         super.init(
-            contentRect: CGRect(origin: origin, size: overlayWindowSize),
+            contentRect: Self.frameForCurrentScreen(),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
 
-        level = .floating
+        level = .statusBar
         backgroundColor = .clear
         isOpaque = false
         hasShadow = false
         ignoresMouseEvents = true
-        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        isFloatingPanel = true
+        hidesOnDeactivate = false
+        animationBehavior = .none
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
 
         let hosting = NSHostingView(rootView: RecordingOverlayView(viewModel: viewModel))
         hosting.autoresizingMask = [.width, .height]
         hosting.frame = CGRect(origin: .zero, size: overlayWindowSize)
         contentView = hosting
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenLayoutChanged),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(screenLayoutChanged),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
     }
 
     func show(state: OverlayState) {
+        presentationGeneration += 1
         viewModel.state = state
+        setFrame(Self.frameForCurrentScreen(), display: true)
+        contentView?.needsDisplay = true
+
         if !isVisible {
             alphaValue = 0
-            orderFront(nil)
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.18
-                animator().alphaValue = 1
-            }
+        }
+        orderFrontRegardless()
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.16
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            animator().alphaValue = 1
         }
     }
 
@@ -79,16 +98,54 @@ final class RecordingOverlayWindow: NSWindow {
 
     func showError(_ message: String) {
         show(state: .error(message))
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in self?.hide() }
+        let generation = presentationGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            guard let self, self.presentationGeneration == generation else { return }
+            if case .error = self.viewModel.state {
+                self.hide()
+            }
+        }
     }
 
     func hide() {
+        presentationGeneration += 1
+        let generation = presentationGeneration
         NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.14
+            ctx.duration = 0.12
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             self.animator().alphaValue = 0
         }, completionHandler: {
+            guard self.presentationGeneration == generation else { return }
             self.orderOut(nil)
         })
+    }
+
+    @objc private func screenLayoutChanged() {
+        guard isVisible else { return }
+        setFrame(Self.frameForCurrentScreen(), display: true, animate: false)
+    }
+
+    private static func frameForCurrentScreen() -> CGRect {
+        let screen = screenForOverlay()
+        let visibleFrame = screen.visibleFrame
+        let origin = CGPoint(
+            x: visibleFrame.maxX - overlayWindowSize.width - overlayWindowPadding,
+            y: visibleFrame.minY + overlayWindowPadding
+        )
+        return CGRect(origin: origin, size: overlayWindowSize)
+    }
+
+    private static func screenForOverlay() -> NSScreen {
+        let mouseLocation = NSEvent.mouseLocation
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) {
+            return screen
+        }
+        return NSScreen.main ?? NSScreen.screens[0]
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 }
 
@@ -108,9 +165,11 @@ struct RecordingOverlayView: View {
         ZStack(alignment: .bottomTrailing) {
             Color.clear
             stateView
+                .id(stateID)
+                .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .bottomTrailing)))
                 .animation(.easeInOut(duration: 0.16), value: stateID)
-                .padding(.trailing, 18)
-                .padding(.bottom, 16)
+                .padding(.trailing, overlayWindowPadding)
+                .padding(.bottom, overlayWindowPadding)
         }
         .frame(width: overlayWindowSize.width, height: overlayWindowSize.height)
     }
@@ -121,9 +180,9 @@ struct RecordingOverlayView: View {
         case .recording:
             RecordingContent()
         case .transcribing:
-            ProcessingContent(title: "Transcribing...", subtitle: nil, tint: .white)
-        case .refining(_, let transcript):
-            ProcessingContent(title: viewModel.state.displayTitle, subtitle: transcript, tint: Color(red: 0.48, green: 0.74, blue: 1.0))
+            ProcessingContent(title: "Transcribing")
+        case .refining(let promptName, _):
+            ProcessingContent(title: promptName)
         case .error(let message):
             ErrorContent(message: message)
         }
@@ -131,64 +190,23 @@ struct RecordingOverlayView: View {
 }
 
 private struct RecordingContent: View {
-    @State private var pulsing = false
-    @State private var bars: [CGFloat] = Array(repeating: 0.35, count: 9)
-    private let timer = Timer.publish(every: 0.12, on: .main, in: .common).autoconnect()
-
     var body: some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.red.opacity(0.28))
-                    .frame(width: 20, height: 20)
-                    .scaleEffect(pulsing ? 1.42 : 1.0)
-                    .animation(.easeInOut(duration: 0.75).repeatForever(autoreverses: true), value: pulsing)
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 8, height: 8)
+            RecordingGlyph()
+
+            TimelineView(.animation(minimumInterval: 1.0 / 18.0)) { timeline in
+                WaveformBars(time: timeline.date.timeIntervalSinceReferenceDate)
             }
-            .frame(width: 22, height: 22)
-
-            Text("Recording")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-
-            WaveformBars(bars: bars)
         }
-        .overlayPill()
-        .onAppear { pulsing = true }
-        .onReceive(timer) { _ in bars = bars.map { _ in CGFloat.random(in: 0.18...1.0) } }
+        .overlayPill(horizontalPadding: 14)
     }
 }
 
 private struct ProcessingContent: View {
     let title: String
-    let subtitle: String?
-    let tint: Color
 
     var body: some View {
-        HStack(spacing: 10) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .scaleEffect(0.72)
-                .tint(tint)
-                .frame(width: 20, height: 20)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: 150, alignment: .leading)
-                }
-            }
-        }
+        ShimmerText(title)
         .overlayPill()
     }
 }
@@ -197,64 +215,124 @@ private struct ErrorContent: View {
     let message: String
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.orange)
-                .font(.system(size: 15, weight: .semibold))
-                .frame(width: 22, height: 22)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 18, height: 18)
 
             Text(message)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(.white)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92))
                 .lineLimit(2)
-                .frame(maxWidth: 150, alignment: .leading)
+                .frame(maxWidth: 116, alignment: .leading)
         }
-        .overlayPill(background: Color(red: 0.30, green: 0.08, blue: 0.05).opacity(0.96))
+        .overlayPill(background: Color.black.opacity(0.62))
     }
 }
 
 private struct WaveformBars: View {
-    let bars: [CGFloat]
+    let time: TimeInterval
 
     var body: some View {
         HStack(spacing: 2.5) {
-            ForEach(bars.indices, id: \.self) { index in
+            ForEach(0..<9, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(Color.white.opacity(0.82))
-                    .frame(width: 3, height: bars[index] * 18 + 4)
-                    .animation(.easeInOut(duration: 0.10), value: bars[index])
+                    .fill(Color.white.opacity(0.58))
+                    .frame(width: 3, height: barHeight(at: index))
             }
         }
-        .frame(width: 44, height: 26)
+        .frame(width: 34, height: 20)
+    }
+
+    private func barHeight(at index: Int) -> CGFloat {
+        let phase = time * 5.0 + Double(index) * 0.82
+        let normalized = (sin(phase) + 1) / 2
+        return CGFloat(4 + normalized * 12)
+    }
+}
+
+private struct RecordingGlyph: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            let pulse = (sin(time * 3.8) + 1) / 2
+
+            ZStack {
+                Circle()
+                    .fill(Color(nsColor: .systemRed).opacity(0.10 + 0.10 * pulse))
+                    .frame(width: 18, height: 18)
+                    .scaleEffect(1.0 + 0.18 * pulse)
+                Circle()
+                    .fill(Color(nsColor: .systemRed))
+                    .frame(width: 6, height: 6)
+            }
+            .frame(width: 20, height: 20)
+        }
+    }
+}
+
+private struct ShimmerText: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            let progress = timeline.date.timeIntervalSinceReferenceDate
+                .truncatingRemainder(dividingBy: 1.35) / 1.35
+
+            Text(text)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .white.opacity(0.50), location: 0.0),
+                            .init(color: .white.opacity(0.96), location: 0.48),
+                            .init(color: .white.opacity(0.50), location: 1.0),
+                        ],
+                        startPoint: UnitPoint(x: progress * 2 - 1.0, y: 0.5),
+                        endPoint: UnitPoint(x: progress * 2, y: 0.5)
+                    )
+                )
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
     }
 }
 
 private struct OverlayPillModifier: ViewModifier {
     var background: Color
+    var horizontalPadding: CGFloat
 
     func body(content: Content) -> some View {
         content
-            .frame(minWidth: 148, minHeight: 40)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .frame(minWidth: 62, minHeight: 26)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, 4)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    Capsule(style: .continuous)
                         .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    Capsule(style: .continuous)
                         .fill(background)
                 }
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: 0.5)
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.13), lineWidth: 0.5)
             )
-            .shadow(color: .black.opacity(0.24), radius: 14, x: 0, y: 8)
+            .shadow(color: .black.opacity(0.20), radius: 12, x: 0, y: 5)
     }
 }
 
 private extension View {
-    func overlayPill(background: Color = Color(white: 0.08).opacity(0.88)) -> some View {
-        modifier(OverlayPillModifier(background: background))
+    func overlayPill(
+        background: Color = Color.black.opacity(0.56),
+        horizontalPadding: CGFloat = 10
+    ) -> some View {
+        modifier(OverlayPillModifier(background: background, horizontalPadding: horizontalPadding))
     }
 }

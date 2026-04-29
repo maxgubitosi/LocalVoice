@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LocalVoice - Private voice dictation for Mac</title>
-  <meta name="description" content="LocalVoice is a private voice dictation app for macOS. Hold Right Command, speak, release, and text appears in any app. Whisper and MLX run on-device.">
+  <title>LocalVoice - Free private voice dictation for Mac</title>
+  <meta name="description" content="LocalVoice lets you dictate into any Mac app by holding Right Command. Free, open source, and fully on-device with Whisper and optional local MLX refinement.">
   <meta property="og:title" content="LocalVoice">
-  <meta property="og:description" content="Private voice dictation for Mac. Runs entirely on-device.">
+  <meta property="og:description" content="Free private voice dictation for Mac. Hold a key, speak, and insert text anywhere.">
   <meta property="og:image" content="assets/hero.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -22,12 +22,14 @@
       <span>LocalVoice</span>
     </a>
     <nav class="nav-links" aria-label="Primary navigation">
-      <a href="#workflow">Workflow</a>
+      <a href="#workflow">How it works</a>
+      <a href="#examples">Examples</a>
+      <a href="#product">Product</a>
       <a href="#privacy">Privacy</a>
       <a href="#install">Install</a>
       <a href="https://github.com/maxgubitosi/LocalVoice">GitHub</a>
     </nav>
-    <a class="header-download" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>↓ Download</a>
+    <a class="header-download" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>Download</a>
   </header>
 
   <main id="top">
@@ -35,65 +37,153 @@
       <img class="hero-image" src="assets/hero.png" alt="LocalVoice running on macOS with settings and recording overlay visible">
       <div class="hero-shade"></div>
       <div class="hero-content">
-        <p class="eyebrow">Open source · macOS 14+ · Apple Silicon</p>
-        <h1>LocalVoice</h1>
+        <p class="eyebrow">Free · private · macOS voice dictation</p>
+        <h1>Speak into any Mac app.</h1>
         <p class="hero-copy">
-          Private voice dictation for Mac. Hold Right Command, speak, release, and your words appear in the active app. Whisper and optional MLX refinement run entirely on-device.
+          Hold Right Command, speak, release. LocalVoice inserts text wherever your cursor is, so everyday writing moves at voice speed. It is free, open source, and runs entirely on your Mac.
         </p>
         <div class="hero-actions">
-          <a class="button primary" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>↓ Download for macOS</a>
+          <a class="button primary" href="https://github.com/maxgubitosi/LocalVoice/releases/latest/download/LocalVoice.zip" download>Download for macOS</a>
           <a class="button secondary" href="https://github.com/maxgubitosi/LocalVoice">View source</a>
+        </div>
+        <div class="hero-metrics" aria-label="LocalVoice highlights">
+          <div>
+            <strong>About 3x faster</strong>
+            <span>Speech is commonly around 130-150 WPM; average typing is closer to 40-50 WPM.</span>
+          </div>
+          <div>
+            <strong>100% on-device</strong>
+            <span>Whisper transcription and optional MLX rewrite run locally on Apple Silicon.</span>
+          </div>
+          <div>
+            <strong>Free forever</strong>
+            <span>No account, no API key, no cloud meter, no subscription.</span>
+          </div>
         </div>
         <p class="hero-note">Public beta ZIP. Ad-hoc signed builds require a one-time quarantine command before first launch.</p>
       </div>
     </section>
 
-    <section id="workflow" class="section">
+    <section id="workflow" class="section workflow-section">
       <div class="section-heading">
-        <p class="label">Workflow</p>
-        <h2>Designed for the way Mac power users write.</h2>
+        <p class="label">How it works</p>
+        <h2>A push-to-talk layer for the whole Mac.</h2>
+        <p class="section-copy">LocalVoice sits in the menu bar and works wherever text input already works. You keep your current app in focus and use your voice as a faster keyboard.</p>
       </div>
       <div class="workflow-grid">
         <article class="panel step">
           <span class="step-index">01</span>
           <h3>Hold Right Command</h3>
-          <p>The global hotkey starts recording without changing focus or opening a separate editor.</p>
+          <p>Start recording from any app without opening a dictation window or changing focus.</p>
         </article>
         <article class="panel step">
           <span class="step-index">02</span>
           <h3>Speak naturally</h3>
-          <p>WhisperKit transcribes locally. Refine mode can rewrite the transcript with MLX and your selected prompt.</p>
+          <p>WhisperKit transcribes locally. Refine mode can clean up the transcript with a local MLX model and the prompt you choose.</p>
         </article>
         <article class="panel step">
           <span class="step-index">03</span>
           <h3>Release to insert</h3>
-          <p>LocalVoice inserts text into the focused field using Accessibility first, with Unicode keyboard events fallback when needed.</p>
+          <p>The text appears in the focused field. Use hold mode for quick bursts or latch mode for longer dictation.</p>
         </article>
+      </div>
+      <div class="workflow-strip" aria-label="LocalVoice recording pipeline">
+        <span>Right Command</span>
+        <span>Local microphone</span>
+        <span>Whisper</span>
+        <span>Optional MLX refine</span>
+        <span>Focused app</span>
       </div>
     </section>
 
-    <section class="section product-section">
+    <section id="examples" class="section examples-section">
+      <div class="section-heading">
+        <p class="label">Examples</p>
+        <h2>Use it for the text you write all day.</h2>
+        <p class="section-copy">Direct mode inserts what you said. Refine mode rewrites the transcript locally, using app context and your selected prompt when helpful.</p>
+      </div>
+      <div class="example-grid">
+        <article class="example-card">
+          <div class="example-topline">
+            <span>Email</span>
+            <strong>Direct</strong>
+          </div>
+          <p class="example-text">"Thanks for the update. I'll review the numbers this afternoon and send the revised plan before the end of the day."</p>
+        </article>
+        <article class="example-card">
+          <div class="example-topline">
+            <span>Slack</span>
+            <strong>Refine</strong>
+          </div>
+          <p class="example-text">"I found the issue. The recorder is stopping correctly, but the insert path waits for the old accessibility state. I'll patch that now."</p>
+        </article>
+        <article class="example-card">
+          <div class="example-topline">
+            <span>Docs</span>
+            <strong>Prompt 1-9</strong>
+          </div>
+          <p class="example-text">"Turn a loose thought into a concise paragraph, keep the language natural, and preserve technical details."</p>
+        </article>
+      </div>
+      <div class="mode-compare">
+        <div>
+          <p class="label">Mode 1</p>
+          <h3>Direct dictation</h3>
+          <p>Fast, literal voice-to-text for notes, search boxes, messages, and anywhere you just want your words inserted.</p>
+        </div>
+        <div>
+          <p class="label">Mode 2</p>
+          <h3>Local refine</h3>
+          <p>Say the rough version and let a local MLX model rewrite it into cleaner email, comments, summaries, or custom prompt styles.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="product" class="section product-section">
       <div class="section-heading">
         <p class="label">Product</p>
-        <h2>A quiet native utility, not another cloud dictation account.</h2>
+        <h2>The app is small, but the workflow is complete.</h2>
+        <p class="section-copy">Settings, history, prompts, local models, and permissions are visible in native macOS windows instead of hidden behind a web account.</p>
       </div>
-      <div class="image-grid">
-        <figure class="screenshot large">
-          <img src="assets/settings.png" alt="LocalVoice settings window showing local model and permission status">
-          <figcaption>Settings show readiness, local model status, prompts, and permissions in one native macOS window.</figcaption>
-        </figure>
-        <figure class="screenshot">
-          <img src="assets/history-prompts.png" alt="LocalVoice history and prompt management screens">
-          <figcaption>History, prompts, shortcuts, and exports stay local and easy to inspect.</figcaption>
-        </figure>
+      <div class="tour-list">
+        <article class="tour-row">
+          <figure class="screenshot">
+            <img src="assets/settings.png" alt="LocalVoice settings window showing local model and permission status">
+          </figure>
+          <div class="tour-copy">
+            <p class="label">Settings</p>
+            <h3>Know exactly what is running.</h3>
+            <p>Choose Direct or Refine mode, manage Whisper and MLX models, check permissions, pick the language, and control browser context from one place.</p>
+            <ul class="compact-list">
+              <li>Hardware-aware MLX model recommendation</li>
+              <li>Download progress and local model deletion</li>
+              <li>Microphone, Accessibility, and Input Monitoring status</li>
+            </ul>
+          </div>
+        </article>
+        <article class="tour-row reverse">
+          <figure class="screenshot">
+            <img src="assets/history-prompts.png" alt="LocalVoice history and prompt management screens">
+          </figure>
+          <div class="tour-copy">
+            <p class="label">History and prompts</p>
+            <h3>Review, reuse, and steer the rewrite.</h3>
+            <p>Optional local history helps you inspect past dictations and export CSV when you need it. Custom prompts let Refine mode match your writing style, and number shortcuts make them fast during recording.</p>
+            <ul class="compact-list">
+              <li>Searchable local transcription history</li>
+              <li>Per-prompt shortcuts from 1-9</li>
+              <li>CSV export with local metadata</li>
+            </ul>
+          </div>
+        </article>
       </div>
     </section>
 
     <section id="privacy" class="section proof-section">
       <div class="section-heading">
         <p class="label">Privacy model</p>
-        <h2>Your voice never leaves your Mac.</h2>
-        <p class="section-copy">LocalVoice has no cloud transcription service, no API keys, and no subscription. Audio, prompts, model inference, history, and optional browser page context stay on your Mac.</p>
+        <h2>No cloud transcription service in the middle.</h2>
+        <p class="section-copy">Audio, transcripts, prompts, local history, app context, and text refinement stay on your Mac. LocalVoice is open source, so the privacy model is inspectable too.</p>
       </div>
       <div class="proof-grid">
         <article class="panel proof">
@@ -109,19 +199,9 @@
           <span>AXUIElement first · no clipboard pollution</span>
         </article>
         <article class="panel proof">
-          <strong>Browser context</strong>
-          <span>Optional title and sanitized URL for Refine and local history</span>
-        </article>
-        <article class="panel proof">
           <strong>Secure fields</strong>
           <span>Refuses kAXSecureTextFieldRole password inputs</span>
         </article>
-      </div>
-      <div class="architecture">
-        <span>Microphone</span>
-        <span>Whisper</span>
-        <span>Optional MLX refine</span>
-        <span>Focused app</span>
       </div>
     </section>
 
@@ -141,19 +221,15 @@
         </div>
         <div class="feature-row">
           <h3>Language control</h3>
-          <p>For Spanish dictation, choose Spanish directly. Auto can misdetect short clips and make Refine answer in English.</p>
-        </div>
-        <div class="feature-row">
-          <h3>Local history</h3>
-          <p>Review recordings, search transcripts when saving is enabled, and export CSV with local metadata.</p>
+          <p>Choose a fixed language for short clips, or use Auto when you want local detection.</p>
         </div>
         <div class="feature-row">
           <h3>Configurable browser context</h3>
           <p>Use active browser title and sanitized URL to improve Refine, or turn it off in Settings.</p>
         </div>
         <div class="feature-row">
-          <h3>Hardware-aware defaults</h3>
-          <p>LocalVoice recommends an MLX model tier based on your Apple Silicon chip and memory.</p>
+          <h3>No clipboard dependency</h3>
+          <p>LocalVoice inserts text with Accessibility first and falls back to Unicode keyboard events when needed.</p>
         </div>
       </div>
     </section>
