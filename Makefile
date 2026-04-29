@@ -21,7 +21,7 @@ bundle: build
 	cp $(BINARY) $(CONTENTS)/MacOS/$(APP_NAME)
 	cp $(METALLIB) $(CONTENTS)/MacOS/mlx.metallib
 	cp Sources/LocalVoice/Info.plist $(CONTENTS)/Info.plist
-	-cp AppIcon.icns $(CONTENTS)/Resources/AppIcon.icns 2>/dev/null || true
+	cp AppIcon.icns $(CONTENTS)/Resources/AppIcon.icns
 	cp -R $(BUILD_DIR)/Sparkle.framework $(CONTENTS)/Frameworks/
 	install_name_tool -add_rpath @executable_path/../Frameworks $(CONTENTS)/MacOS/$(APP_NAME)
 	xattr -cr $(APP)
@@ -32,6 +32,7 @@ verify-bundle:
 	test -x $(CONTENTS)/MacOS/$(APP_NAME)
 	test -f $(CONTENTS)/MacOS/mlx.metallib
 	test -f $(CONTENTS)/Info.plist
+	test -f $(CONTENTS)/Resources/AppIcon.icns
 	test -d $(CONTENTS)/Frameworks/Sparkle.framework
 	codesign --verify --deep --strict $(APP)
 
